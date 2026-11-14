@@ -70,6 +70,12 @@ export const useFinance = () => {
     return res;
   };
 
+  const updateInvoice = async (id: number, payload: Partial<CreateInvoicePayload>) => {
+    const res = await financeApi.updateInvoice(id, payload);
+    await fetchFinanceData();
+    return res;
+  };
+
   const payInvoice = async (invoiceId: number, payload: PayInvoicePayload) => {
     const res = await financeApi.payInvoice(invoiceId, payload);
     await fetchFinanceData();
@@ -85,6 +91,12 @@ export const useFinance = () => {
   // Payment Actions
   const addPayment = async (payload: CreatePaymentPayload) => {
     const res = await financeApi.createPayment(payload);
+    await fetchFinanceData();
+    return res;
+  };
+
+  const updatePayment = async (paymentId: number, payload: Partial<CreatePaymentPayload>) => {
+    const res = await financeApi.updatePayment(paymentId, payload);
     await fetchFinanceData();
     return res;
   };
@@ -147,6 +159,7 @@ export const useFinance = () => {
     fetchFinanceData,
     // Invoice methods & metrics
     addInvoice,
+    updateInvoice,
     payInvoice,
     deleteInvoice,
     totalInvoiced,
@@ -154,6 +167,7 @@ export const useFinance = () => {
     totalInvoiceDue,
     // Payment methods & metrics
     addPayment,
+    updatePayment,
     settlePayment,
     deletePayment,
     totalBilled,

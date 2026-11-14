@@ -11,6 +11,9 @@ import { Classes } from './pages/Classes';
 import { Teachers } from './pages/Teachers';
 import { Attendance } from './pages/Attendance';
 import { Finance } from './pages/Finance';
+import { FinanceInvoices } from './pages/FinanceInvoices';
+import { FinancePayments } from './pages/FinancePayments';
+import { FinanceFundCollections } from './pages/FinanceFundCollections';
 import { Examinations } from './pages/Examinations';
 import { SuperAdmin } from './pages/SuperAdmin';
 import { Settings } from './pages/Settings';
@@ -34,6 +37,10 @@ export const App: React.FC = () => {
               <Route path="/teachers" element={<Teachers />} />
               <Route path="/attendance" element={<Attendance />} />
               <Route path="/finance" element={<Finance />} />
+              <Route path="/finance/invoices" element={<FinanceInvoices />} />
+              <Route path="/finance/payments" element={<FinancePayments />} />
+              <Route path="/finance/fund-collections" element={<FinanceFundCollections />} />
+              <Route path="/finance/categories" element={<Navigate to="/finance/fund-collections" replace />} />
               <Route path="/exams" element={<Examinations />} />
               <Route path="/notifications" element={<Notifications />} />
               <Route path="/super-admin" element={<SuperAdmin />} />

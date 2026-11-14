@@ -1,11 +1,9 @@
 import React from 'react';
-import { InvoiceList } from '../features/finance';
+import { Navigate } from 'react-router-dom';
 
 export const Finance: React.FC = () => {
-  return (
-    <div className="py-2">
-      <InvoiceList />
-    </div>
-  );
+  return <Navigate to="/finance/invoices" replace />;
 };
+
+export default Finance;
 

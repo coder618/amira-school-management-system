@@ -17,9 +17,11 @@ export const ROUTES = {
     REPORTS: '/attendance/reports',
   },
   FINANCE: {
+    ROOT: '/finance',
     INVOICES: '/finance/invoices',
     PAYMENTS: '/finance/payments',
-    FEE_CATEGORIES: '/finance/categories',
+    FUND_COLLECTIONS: '/finance/fund-collections',
+    FEE_CATEGORIES: '/finance/fund-collections',
   },
   EXAMINATION: {
     MARKS_ENTRY: '/exams/marks-entry',

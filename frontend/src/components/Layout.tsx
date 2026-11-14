@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { NotificationDropdown } from '../features/notification';
 import { UserProfileDropdown } from './UserProfileDropdown';
@@ -18,13 +18,36 @@ import {
   Bell,
   Search,
   School,
+  ChevronDown,
+  Receipt,
 } from 'lucide-react';
+
+interface NavItem {
+  label: string;
+  path: string;
+  icon: React.ComponentType<{ className?: string }>;
+  children?: {
+    label: string;
+    path: string;
+    icon: React.ComponentType<{ className?: string }>;
+  }[];
+}
 
 export const Layout: React.FC = () => {
   const { user } = useAuth();
+  const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const navItems = [
+  const isFinanceActive = location.pathname.startsWith('/finance');
+  const [financeOpen, setFinanceOpen] = useState(isFinanceActive);
+
+  useEffect(() => {
+    if (isFinanceActive) {
+      setFinanceOpen(true);
+    }
+  }, [isFinanceActive]);
+
+  const navItems: NavItem[] = [
     ...(user?.role === 'SuperAdmin'
       ? [{ label: 'SuperAdmin Console', path: '/super-admin', icon: ShieldCheck }]
       : []),
@@ -33,7 +56,16 @@ export const Layout: React.FC = () => {
     { label: 'Classes', path: '/classes', icon: Layers },
     { label: 'Teachers & HR', path: '/teachers', icon: Users },
     { label: 'Attendance', path: '/attendance', icon: CalendarCheck },
-    { label: 'Finance & Fees', path: '/finance', icon: CreditCard },
+    {
+      label: 'Finance & Fees',
+      path: '/finance',
+      icon: CreditCard,
+      children: [
+        { label: 'Invoices', path: '/finance/invoices', icon: Receipt },
+        { label: 'Payments Module', path: '/finance/payments', icon: CreditCard },
+        { label: 'Fund Collection Names', path: '/finance/fund-collections', icon: Layers },
+      ],
+    },
     { label: 'Exams & GPA', path: '/exams', icon: Award },
     { label: 'Notifications', path: '/notifications', icon: Bell },
     { label: 'Settings', path: '/settings', icon: Settings },
@@ -82,6 +114,62 @@ export const Layout: React.FC = () => {
           </div>
           {navItems.map((item) => {
             const Icon = item.icon;
+
+            if (item.children && item.children.length > 0) {
+              const isChildActive = item.children.some(
+                (c) => location.pathname === c.path || location.pathname.startsWith(c.path)
+              );
+
+              return (
+                <div key={item.path} className="space-y-1">
+                  <button
+                    type="button"
+                    onClick={() => setFinanceOpen((prev) => !prev)}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
+                      isChildActive
+                        ? 'bg-slate-800 text-white font-semibold'
+                        : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Icon className={`h-4 w-4 shrink-0 ${isChildActive ? 'text-indigo-400' : ''}`} />
+                      <span>{item.label}</span>
+                    </div>
+                    <ChevronDown
+                      className={`h-4 w-4 shrink-0 text-slate-400 transition-transform duration-200 ${
+                        financeOpen ? 'rotate-180 text-white' : ''
+                      }`}
+                    />
+                  </button>
+
+                  {financeOpen && (
+                    <div className="pl-3.5 pr-1 py-1 space-y-1 border-l-2 border-slate-800 ml-4">
+                      {item.children.map((sub) => {
+                        const SubIcon = sub.icon;
+                        return (
+                          <NavLink
+                            key={sub.path}
+                            to={sub.path}
+                            onClick={() => setMobileMenuOpen(false)}
+                            className={({ isActive }) =>
+                              `flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                                isActive
+                                  ? 'bg-indigo-600 text-white shadow-xs font-semibold'
+                                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+                              }`
+                            }
+                          >
+                            <SubIcon className="h-3.5 w-3.5 shrink-0" />
+                            <span>{sub.label}</span>
+                          </NavLink>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
             return (
               <NavLink
                 key={item.path}

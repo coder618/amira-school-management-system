@@ -28,6 +28,11 @@ export const financeApi = {
     return res.data;
   },
 
+  updateInvoice: async (id: number, payload: Partial<CreateInvoicePayload>): Promise<Invoice> => {
+    const res = await apiClient.put<Invoice>(`/invoices/${id}`, payload);
+    return res.data;
+  },
+
   payInvoice: async (
     invoiceId: number,
     payload: PayInvoicePayload
@@ -60,8 +65,18 @@ export const financeApi = {
     return res.data;
   },
 
+  getPaymentById: async (id: number): Promise<Payment> => {
+    const res = await apiClient.get<Payment>(`/payments/${id}`);
+    return res.data;
+  },
+
   createPayment: async (payload: CreatePaymentPayload): Promise<Payment> => {
     const res = await apiClient.post<Payment>('/payments', payload);
+    return res.data;
+  },
+
+  updatePayment: async (id: number, payload: Partial<CreatePaymentPayload>): Promise<Payment> => {
+    const res = await apiClient.put<Payment>(`/payments/${id}`, payload);
     return res.data;
   },
 
