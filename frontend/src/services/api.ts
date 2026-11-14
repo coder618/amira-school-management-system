@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { AuthResponse, DashboardStats, Student, Course, User, SchoolExam, SchoolExamResult, TabulationData, FundCollectionName, TenantPayment } from '../types';
+import { AuthResponse, DashboardStats, Student, Course, User, School, SchoolExam, SchoolExamResult, TabulationData, FundCollectionName, TenantPayment } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
 
@@ -273,6 +273,18 @@ export const paymentsApi = {
     return res.data;
   },
 };
+
+export const schoolApi = {
+  getCurrent: async (): Promise<School> => {
+    const res = await apiClient.get<School>('/school/current');
+    return res.data;
+  },
+  updateCurrent: async (data: Partial<School>): Promise<{ message: string; school: School }> => {
+    const res = await apiClient.put<{ message: string; school: School }>('/school/current', data);
+    return res.data;
+  },
+};
+
 
 
 

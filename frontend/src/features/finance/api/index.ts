@@ -90,6 +90,21 @@ export const financeApi = {
     return res.data;
   },
 
+  downloadPaymentPdf: async (paymentId: number, receiptNo: string): Promise<void> => {
+    const res = await apiClient.get(`/payments/${paymentId}/pdf`, {
+      responseType: 'blob',
+    });
+    const blob = new Blob([res.data], { type: 'application/pdf' });
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = `Receipt-${receiptNo}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(downloadUrl);
+  },
+
   getPaymentStats: async () => {
     const res = await apiClient.get('/payments-stats');
     return res.data;

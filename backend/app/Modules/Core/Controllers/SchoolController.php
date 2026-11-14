@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class SchoolController extends Controller
 {
@@ -58,7 +59,7 @@ class SchoolController extends Controller
             // 1. Generate School Code if not provided
             $code = ! empty($validated['code'])
                 ? strtoupper(trim($validated['code']))
-                : 'SCH-' . strtoupper(Str::random(6));
+                : 'SCH-'.strtoupper(Str::random(6));
 
             // 2. Create Tenant School
             $school = School::create([
@@ -76,7 +77,7 @@ class SchoolController extends Controller
             $currentYear = date('Y');
             $academicYear = AcademicYear::create([
                 'school_id' => $school->id,
-                'title' => "{$currentYear}-" . ($currentYear + 1),
+                'title' => "{$currentYear}-".($currentYear + 1),
                 'start_date' => "{$currentYear}-01-01",
                 'end_date' => "{$currentYear}-12-31",
                 'is_current' => true,
@@ -85,7 +86,7 @@ class SchoolController extends Controller
             // 4. Automatically generate Headmaster / Admin User Account tied to school_id
             $headmasterName = ! empty($validated['headmaster_name'])
                 ? trim($validated['headmaster_name'])
-                : 'Headmaster (' . $school->name . ')';
+                : 'Headmaster ('.$school->name.')';
 
             $headmaster = User::create([
                 'school_id' => $school->id,
@@ -117,5 +118,147 @@ class SchoolController extends Controller
             ],
         ], 201);
     }
-}
 
+    /**
+     * Get the current tenant school for the authenticated user.
+     */
+    public function showCurrent(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $schoolId = $user?->school_id
+            ?? ($request->header('X-School-Id') ? (int) $request->header('X-School-Id') : null)
+            ?? School::first()?->id;
+
+        $school = $schoolId ? School::find($schoolId) : School::first();
+
+        if (! $school) {
+            return response()->json(['message' => 'School record not found.'], 404);
+        }
+
+        return response()->json($school);
+    }
+
+    /**
+     * Update current tenant school information (Admin role only).
+     */
+    public function updateCurrent(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if (! $this->isAdminUser($user)) {
+            return response()->json([
+                'message' => 'Unauthorized. Only admin role users can update school information.',
+            ], 403);
+        }
+
+        $schoolId = $user?->school_id
+            ?? ($request->header('X-School-Id') ? (int) $request->header('X-School-Id') : null)
+            ?? School::first()?->id;
+
+        $school = $schoolId ? School::find($schoolId) : School::first();
+
+        if (! $school) {
+            return response()->json(['message' => 'School record not found.'], 404);
+        }
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'code' => ['required', 'string', 'max:50', Rule::unique('schools', 'code')->ignore($school->id)],
+            'eiin' => 'nullable|string|max:30',
+            'board' => 'nullable|string|max:100',
+            'address' => 'required|string|max:500',
+            'phone' => 'nullable|string|max:50',
+            'email' => 'nullable|email|max:255',
+            'division' => 'nullable|string|max:100',
+            'district' => 'nullable|string|max:100',
+            'thana' => 'nullable|string|max:100',
+        ]);
+
+        $school->update($validated);
+
+        return response()->json([
+            'message' => 'School institutional information updated successfully.',
+            'school' => $school->fresh(),
+        ]);
+    }
+
+    /**
+     * Get a specific school by ID.
+     */
+    public function show(Request $request, School $school): JsonResponse
+    {
+        $this->authorizeSchoolAccess($request->user(), $school);
+
+        return response()->json($school);
+    }
+
+    /**
+     * Update a specific school by ID (Admin role only).
+     */
+    public function update(Request $request, School $school): JsonResponse
+    {
+        $user = $request->user();
+
+        if (! $this->isAdminUser($user)) {
+            return response()->json([
+                'message' => 'Unauthorized. Only admin role users can update school information.',
+            ], 403);
+        }
+
+        $this->authorizeSchoolAccess($user, $school);
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'code' => ['required', 'string', 'max:50', Rule::unique('schools', 'code')->ignore($school->id)],
+            'eiin' => 'nullable|string|max:30',
+            'board' => 'nullable|string|max:100',
+            'address' => 'required|string|max:500',
+            'phone' => 'nullable|string|max:50',
+            'email' => 'nullable|email|max:255',
+            'division' => 'nullable|string|max:100',
+            'district' => 'nullable|string|max:100',
+            'thana' => 'nullable|string|max:100',
+        ]);
+
+        $school->update($validated);
+
+        return response()->json([
+            'message' => 'School institutional information updated successfully.',
+            'school' => $school->fresh(),
+        ]);
+    }
+
+    /**
+     * Check if user has admin privileges.
+     */
+    protected function isAdminUser(?User $user): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        $role = strtolower((string) $user->role);
+
+        return in_array($role, ['admin', 'superadmin'], true)
+            || (method_exists($user, 'isAdmin') && $user->isAdmin())
+            || (method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin());
+    }
+
+    /**
+     * Ensure tenant school isolation.
+     */
+    protected function authorizeSchoolAccess(?User $user, School $school): void
+    {
+        if (! $user) {
+            abort(401, 'Unauthenticated.');
+        }
+
+        if ($user->role === Role::SuperAdmin->value || (method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin())) {
+            return;
+        }
+
+        if ($user->school_id && (int) $user->school_id !== (int) $school->id) {
+            abort(403, 'Unauthorized access to this school tenant.');
+        }
+    }
+}

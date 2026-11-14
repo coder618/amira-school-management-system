@@ -8,9 +8,12 @@ use App\Modules\Core\Models\School;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Payments\Requests\StorePaymentRequest;
 use App\Modules\Payments\Requests\UpdatePaymentRequest;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Str;
+use NumberFormatter;
 
 class PaymentController extends Controller
 {
@@ -222,6 +225,58 @@ class PaymentController extends Controller
         return response()->json([
             'message' => 'Payment record deleted successfully.',
         ]);
+    }
+
+    /**
+     * Generate and download professional PDF receipt for this payment.
+     */
+    public function downloadPdf(Payment $payment): Response
+    {
+        $this->authorizeTenant($payment);
+
+        $payment->load([
+            'fundCollectionName',
+            'student.classLevel',
+            'student.section',
+            'school',
+            'academicYear',
+            'user',
+        ]);
+
+        $school = $payment->school ?? School::find($payment->school_id) ?? School::first();
+        $academicYear = $payment->academicYear ?? AcademicYear::find($payment->academic_year_id) ?? AcademicYear::first();
+
+        // Convert paid amount to English words
+        $amountToSpell = (float) $payment->paid_amount;
+        $amountInWords = 'Zero Taka Only';
+        if ($amountToSpell > 0 && class_exists('NumberFormatter')) {
+            try {
+                $formatter = new NumberFormatter('en', NumberFormatter::SPELLOUT);
+                $whole = floor($amountToSpell);
+                $fraction = round(($amountToSpell - $whole) * 100);
+
+                $words = ucwords($formatter->format($whole)) . ' Taka';
+                if ($fraction > 0) {
+                    $words .= ' and ' . ucwords($formatter->format($fraction)) . ' Paisa';
+                }
+                $amountInWords = $words . ' Only';
+            } catch (\Throwable $e) {
+                $amountInWords = 'Tk ' . number_format($amountToSpell, 2) . ' Only';
+            }
+        } elseif ($amountToSpell > 0) {
+            $amountInWords = 'Tk ' . number_format($amountToSpell, 2) . ' Only';
+        }
+
+        $pdf = Pdf::loadView('pdf.payment_receipt', [
+            'payment' => $payment,
+            'school' => $school,
+            'academicYear' => $academicYear,
+            'amountInWords' => $amountInWords,
+        ])->setPaper('a4', 'portrait');
+
+        $fileName = "Receipt-{$payment->receipt_no}.pdf";
+
+        return $pdf->download($fileName);
     }
 
     /**

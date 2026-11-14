@@ -45,6 +45,12 @@ Route::middleware('auth:sanctum')->group(function () {
     // Dashboard metrics
     Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
 
+    // School Tenant Institutional Settings
+    Route::get('/school/current', [SchoolController::class, 'showCurrent']);
+    Route::put('/school/current', [SchoolController::class, 'updateCurrent']);
+    Route::get('/schools/{school}', [SchoolController::class, 'show']);
+    Route::put('/schools/{school}', [SchoolController::class, 'update']);
+
     // SuperAdmin Only Routes (Core Tenant School Management)
     Route::middleware('super_admin')->group(function () {
         Route::get('/schools', [SchoolController::class, 'index']);
@@ -75,6 +81,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/fee-categories', [FundCollectionNameController::class, 'index']); // backward compatibility alias
     Route::apiResource('payments', PaymentController::class)->parameters(['payments' => 'payment']);
     Route::post('/payments/{payment}/settle', [PaymentController::class, 'settle']);
+    Route::get('/payments/{payment}/pdf', [PaymentController::class, 'downloadPdf']);
     Route::get('/payments-stats', [PaymentController::class, 'stats']);
 
     // 4.1 Invoices Module (User Invoices, Status Tracking, Online/Offline Payment & Payment Record Generation)

@@ -334,5 +334,67 @@ class FundCollectionNameAndPaymentsTest extends TestCase
         $response->assertStatus(422);
         $this->assertDatabaseHas('fund_collection_names', ['id' => $collection->id]);
     }
+
+    public function test_can_download_payment_pdf_receipt(): void
+    {
+        $collection = FundCollectionName::create([
+            'school_id' => $this->schoolA->id,
+            'academic_year_id' => $this->yearA->id,
+            'name' => 'Annual Admission Fee',
+            'interval' => 'Yearly',
+        ]);
+
+        $payment = Payment::create([
+            'school_id' => $this->schoolA->id,
+            'academic_year_id' => $this->yearA->id,
+            'fund_collection_name_id' => $collection->id,
+            'student_id' => $this->studentA->id,
+            'receipt_no' => 'RCP-2026-TESTPDF',
+            'amount' => 4000.00,
+            'paid_amount' => 1500.00,
+            'due_amount' => 2500.00,
+            'status' => 'partially_paid',
+            'payment_method' => 'Nagad',
+            'transaction_id' => 'NG_TEST_TRX',
+            'payment_date' => '2026-11-14',
+            'notes' => 'Test payment for PDF download',
+        ]);
+
+        $response = $this->actingAs($this->adminA, 'sanctum')
+            ->get("/api/payments/{$payment->id}/pdf");
+
+        $response->assertStatus(200);
+        $response->assertHeader('content-type', 'application/pdf');
+        $this->assertStringContainsString('attachment; filename=Receipt-RCP-2026-TESTPDF.pdf', (string) $response->headers->get('content-disposition'));
+        $this->assertNotEmpty($response->getContent());
+    }
+
+    public function test_tenant_cannot_download_other_school_payment_pdf(): void
+    {
+        $collection = FundCollectionName::create([
+            'school_id' => $this->schoolA->id,
+            'academic_year_id' => $this->yearA->id,
+            'name' => 'School A Exclusive Fee',
+            'interval' => 'Monthly',
+        ]);
+
+        $payment = Payment::create([
+            'school_id' => $this->schoolA->id,
+            'academic_year_id' => $this->yearA->id,
+            'fund_collection_name_id' => $collection->id,
+            'student_id' => $this->studentA->id,
+            'receipt_no' => 'RCP-2026-SECRET',
+            'amount' => 2000.00,
+            'paid_amount' => 2000.00,
+            'due_amount' => 0.00,
+            'status' => 'paid',
+            'payment_method' => 'Cash',
+        ]);
+
+        $response = $this->actingAs($this->adminB, 'sanctum')
+            ->get("/api/payments/{$payment->id}/pdf");
+
+        $response->assertStatus(403);
+    }
 }
 

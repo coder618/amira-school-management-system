@@ -1,7 +1,19 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Payment } from '../types';
+import { financeApi } from '../api';
 import { formatBdtCurrency } from '../../../shared/utils/validation';
-import { X, CreditCard, CheckCircle, Clock, AlertCircle, User, Calendar, Tag, Printer } from 'lucide-react';
+import {
+  X,
+  CreditCard,
+  CheckCircle,
+  Clock,
+  AlertCircle,
+  User,
+  Calendar,
+  Tag,
+  FileDown,
+  Loader2,
+} from 'lucide-react';
 
 interface PaymentDetailsModalProps {
   isOpen: boolean;
@@ -16,7 +28,24 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
   payment,
   onSettleClick,
 }) => {
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+
   if (!isOpen || !payment) return null;
+
+  const handleDownloadPdf = async () => {
+    if (!payment || isDownloading) return;
+    try {
+      setIsDownloading(true);
+      setDownloadError(null);
+      await financeApi.downloadPaymentPdf(payment.id, payment.receipt_no);
+    } catch (err) {
+      console.error('Failed to download PDF receipt:', err);
+      setDownloadError('Failed to generate PDF. Please try again.');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   const getStatusBadge = (status: Payment['status']) => {
     switch (status) {
@@ -49,10 +78,6 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
           </span>
         );
     }
-  };
-
-  const handlePrint = () => {
-    window.print();
   };
 
   return (
@@ -195,17 +220,35 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
               <p className="text-xs text-amber-900 leading-relaxed">{payment.notes}</p>
             </div>
           )}
+
+          {/* Download Error Feedback */}
+          {downloadError && (
+            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 shrink-0 text-rose-500" />
+              <span>{downloadError}</span>
+            </div>
+          )}
         </div>
 
         {/* Footer */}
         <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between bg-slate-50/50">
           <button
             type="button"
-            onClick={handlePrint}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 transition-colors shadow-xs cursor-pointer"
+            onClick={handleDownloadPdf}
+            disabled={isDownloading}
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-60 disabled:cursor-not-allowed transition-all shadow-xs cursor-pointer"
           >
-            <Printer className="h-3.5 w-3.5" />
-            <span>Print Receipt</span>
+            {isDownloading ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-indigo-600" />
+                <span>Generating PDF...</span>
+              </>
+            ) : (
+              <>
+                <FileDown className="h-3.5 w-3.5 text-indigo-600" />
+                <span>Download as PDF</span>
+              </>
+            )}
           </button>
 
           <div className="flex items-center gap-2">

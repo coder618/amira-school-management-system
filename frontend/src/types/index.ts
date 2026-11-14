@@ -12,6 +12,24 @@ export interface User {
   updated_at?: string;
 }
 
+export interface School {
+  id: number;
+  name: string;
+  code: string;
+  eiin?: string | null;
+  board?: string | null;
+  division?: string | null;
+  district?: string | null;
+  thana?: string | null;
+  address?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  logo?: string | null;
+  is_active?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface AuthResponse {
   message: string;
   user: User;

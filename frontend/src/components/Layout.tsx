@@ -3,6 +3,7 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { NotificationDropdown } from '../features/notification';
 import { UserProfileDropdown } from './UserProfileDropdown';
+import { schoolApi } from '../services/api';
 import {
   LayoutDashboard,
   GraduationCap,
@@ -43,6 +44,35 @@ export const Layout: React.FC = () => {
   const { user } = useAuth();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [tenantName, setTenantName] = useState<string>(() => {
+    return localStorage.getItem('educore_school_name') || 'Dhaka Ideal High School & College';
+  });
+
+  useEffect(() => {
+    const fetchCurrentSchool = async () => {
+      try {
+        const schoolData = await schoolApi.getCurrent();
+        if (schoolData?.name) {
+          setTenantName(schoolData.name);
+          localStorage.setItem('educore_school_name', schoolData.name);
+        }
+      } catch {
+        // Fallback silently if offline or unauthenticated
+      }
+    };
+
+    fetchCurrentSchool();
+
+    const handleSchoolUpdated = (e: any) => {
+      if (e.detail?.name) {
+        setTenantName(e.detail.name);
+        localStorage.setItem('educore_school_name', e.detail.name);
+      }
+    };
+
+    window.addEventListener('school-updated', handleSchoolUpdated);
+    return () => window.removeEventListener('school-updated', handleSchoolUpdated);
+  }, []);
 
   const isStudentsActive = location.pathname.startsWith('/students');
   const isClassesActive = location.pathname.startsWith('/classes');
@@ -140,9 +170,8 @@ export const Layout: React.FC = () => {
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 text-white flex flex-col transition-transform duration-300 ease-in-out md:static md:translate-x-0 ${
-          mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 text-white flex flex-col transition-transform duration-300 ease-in-out md:static md:translate-x-0 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
       >
         {/* Brand */}
         <div className="flex h-16 items-center justify-between px-6 border-b border-slate-800">
@@ -186,20 +215,18 @@ export const Layout: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => toggleSubmenu(item.path)}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
-                      isChildActive
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${isChildActive
                         ? 'bg-slate-800 text-white font-semibold'
                         : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center gap-3">
                       <Icon className={`h-4 w-4 shrink-0 ${isChildActive ? 'text-indigo-400' : ''}`} />
                       <span>{item.label}</span>
                     </div>
                     <ChevronDown
-                      className={`h-4 w-4 shrink-0 text-slate-400 transition-transform duration-200 ${
-                        isOpen ? 'rotate-180 text-white' : ''
-                      }`}
+                      className={`h-4 w-4 shrink-0 text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-180 text-white' : ''
+                        }`}
                     />
                   </button>
 
@@ -214,10 +241,9 @@ export const Layout: React.FC = () => {
                             end={sub.path === '/students'}
                             onClick={() => setMobileMenuOpen(false)}
                             className={({ isActive }) =>
-                              `flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                                isActive
-                                  ? 'bg-indigo-600 text-white shadow-xs font-semibold'
-                                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+                              `flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${isActive
+                                ? 'bg-indigo-600 text-white shadow-xs font-semibold'
+                                : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
                               }`
                             }
                           >
@@ -238,10 +264,9 @@ export const Layout: React.FC = () => {
                 to={item.path}
                 onClick={() => setMobileMenuOpen(false)}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    isActive
-                      ? 'bg-indigo-600 text-white shadow-sm'
-                      : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                  `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isActive
+                    ? 'bg-indigo-600 text-white shadow-sm'
+                    : 'text-slate-300 hover:bg-slate-800 hover:text-white'
                   }`
                 }
               >
@@ -276,12 +301,12 @@ export const Layout: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 border border-emerald-200/60">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              Tenant: Dhaka Ideal High School
-            </span>
-            <NotificationDropdown />
-            <UserProfileDropdown />
+              <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 border border-emerald-200/60 max-w-[260px] truncate" title={tenantName}>
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
+                <span className="truncate">Tenant: {tenantName}</span>
+              </span>
+              <NotificationDropdown />
+              <UserProfileDropdown />
           </div>
         </header>
 
