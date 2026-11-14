@@ -1,0 +1,14 @@
+{
+  "name": "school-management-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "School Management System - Laravel API Backend & React SPA Frontend",
+  "scripts": {
+    "dev:backend": "cd backend && php artisan serve --port=8000",
+    "dev:frontend": "cd frontend && npm run dev -- --host --port 5173",
+    "build:frontend": "cd frontend && npm run build",
+    "seed:backend": "cd backend && php artisan migrate:fresh --seed",
+    "test:backend": "cd backend && php artisan test"
+  }
+}
+
