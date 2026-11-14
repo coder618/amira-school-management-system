@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Student, ClassLevel, ClassLevelPayload, Section, Shift } from '../types';
 import { isValidBdPhoneNumber } from '../../../shared/utils/validation';
 import { ClassManagementModal } from './ClassManagementModal';
-import { X, Loader2, AlertCircle, Settings } from 'lucide-react';
+import { X, Loader2, AlertCircle, Settings, Camera } from 'lucide-react';
 
 interface StudentModalProps {
   isOpen: boolean;
@@ -51,8 +51,17 @@ export const StudentModal: React.FC<StudentModalProps> = ({
   const [submitting, setSubmitting] = useState(false);
   const [isClassModalOpen, setIsClassModalOpen] = useState(false);
 
+  const [studentImageFile, setStudentImageFile] = useState<File | null>(null);
+  const [studentPreview, setStudentPreview] = useState<string | null>(null);
+  const [parentImageFile, setParentImageFile] = useState<File | null>(null);
+  const [parentPreview, setParentPreview] = useState<string | null>(null);
+
   useEffect(() => {
     if (initialData) {
+      setStudentPreview(initialData.student_image_url || null);
+      setParentPreview(initialData.parent_image_url || null);
+      setStudentImageFile(null);
+      setParentImageFile(null);
       setFormData({
         student_id: initialData.student_id,
         roll_number: initialData.roll_number,
@@ -105,7 +114,17 @@ export const StudentModal: React.FC<StudentModalProps> = ({
 
     setSubmitting(true);
     try {
-      await onSubmit(formData);
+      if (studentImageFile || parentImageFile) {
+        const data = new FormData();
+        Object.entries(formData).forEach(([k, v]) => {
+          if (v !== undefined && v !== null) data.append(k, String(v));
+        });
+        if (studentImageFile) data.append('student_image', studentImageFile);
+        if (parentImageFile) data.append('parent_image', parentImageFile);
+        await onSubmit(data);
+      } else {
+        await onSubmit(formData);
+      }
       onClose();
     } catch (err: unknown) {
       if (err && typeof err === 'object' && 'response' in err) {
@@ -145,6 +164,76 @@ export const StudentModal: React.FC<StudentModalProps> = ({
               <span>{validationError}</span>
             </div>
           )}
+
+          {/* Photos & Media */}
+          <div className="rounded-xl bg-slate-50 p-4 border border-slate-200/80">
+            <span className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-3">
+              Student & Parent Photos
+            </span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="flex items-center gap-3">
+                {studentPreview ? (
+                  <img
+                    src={studentPreview}
+                    alt="Student"
+                    className="h-12 w-12 rounded-xl object-cover border border-indigo-200 shadow-2xs"
+                  />
+                ) : (
+                  <div className="h-12 w-12 rounded-xl border-2 border-dashed border-slate-300 bg-white flex items-center justify-center text-slate-400">
+                    <Camera className="h-5 w-5" />
+                  </div>
+                )}
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-700 uppercase mb-0.5">
+                    Student Photo
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setStudentImageFile(file);
+                        setStudentPreview(URL.createObjectURL(file));
+                      }
+                    }}
+                    className="text-xs text-slate-500 file:mr-2 file:py-1 file:px-2.5 file:rounded-md file:border-0 file:text-[11px] file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                {parentPreview ? (
+                  <img
+                    src={parentPreview}
+                    alt="Parent"
+                    className="h-12 w-12 rounded-xl object-cover border border-indigo-200 shadow-2xs"
+                  />
+                ) : (
+                  <div className="h-12 w-12 rounded-xl border-2 border-dashed border-slate-300 bg-white flex items-center justify-center text-slate-400">
+                    <Camera className="h-5 w-5" />
+                  </div>
+                )}
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-700 uppercase mb-0.5">
+                    Parent Photo
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setParentImageFile(file);
+                        setParentPreview(URL.createObjectURL(file));
+                      }
+                    }}
+                    className="text-xs text-slate-500 file:mr-2 file:py-1 file:px-2.5 file:rounded-md file:border-0 file:text-[11px] file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
 
           {/* Academic Placement */}
           <div className="rounded-xl bg-slate-50 p-4 border border-slate-200/80">

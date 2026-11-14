@@ -11,6 +11,7 @@ use App\Modules\Core\Controllers\SchoolController;
 use App\Modules\FundCollectionName\Controllers\FundCollectionNameController;
 use App\Modules\HR\Controllers\TeacherController;
 use App\Modules\Invoice\Controllers\InvoiceController;
+use App\Modules\Media\Controllers\MediaController;
 use App\Modules\Notification\Controllers\NotificationController;
 use App\Modules\Payments\Controllers\PaymentController;
 use App\Modules\SchoolClass\Controllers\ClassLevelController;
@@ -55,6 +56,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('class-levels', ClassLevelController::class);
     Route::apiResource('sections', SectionController::class)->only(['index', 'store', 'destroy']);
     Route::apiResource('shifts', ShiftController::class)->only(['index', 'store']);
+
+    // 1.1 Media Module (Tenant-isolated File & Image Storage)
+    Route::get('/media', [MediaController::class, 'index']);
+    Route::post('/media/upload', [MediaController::class, 'upload']);
+    Route::delete('/media/{media}', [MediaController::class, 'destroy']);
 
     // 2. HR Module (Teachers) APIs
     Route::apiResource('teachers', TeacherController::class);

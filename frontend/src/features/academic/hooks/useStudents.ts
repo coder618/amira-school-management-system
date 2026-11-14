@@ -73,7 +73,7 @@ export const useStudents = () => {
     return () => clearTimeout(timer);
   }, [fetchStudents]);
 
-  const addStudent = async (payload: Omit<Student, 'id' | 'created_at' | 'updated_at'>) => {
+  const addStudent = async (payload: FormData | Omit<Student, 'id' | 'created_at' | 'updated_at'> | any) => {
     const res = await academicApi.createStudent(payload);
     await fetchStudents();
     return res;
@@ -84,7 +84,7 @@ export const useStudents = () => {
     setStudents((prev) => prev.filter((s) => s.id !== id));
   };
 
-  const updateStudent = async (id: number, payload: Partial<Student>) => {
+  const updateStudent = async (id: number, payload: FormData | Partial<Student> | any) => {
     const res = await academicApi.updateStudent(id, payload);
     await fetchStudents();
     return res;

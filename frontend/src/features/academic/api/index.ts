@@ -22,18 +22,33 @@ export const academicApi = {
     return res.data;
   },
 
-  createStudent: async (payload: Omit<Student, 'id' | 'created_at' | 'updated_at'>): Promise<Student> => {
-    const res = await apiClient.post<Student>('/students', payload);
-    return res.data;
+  createStudent: async (payload: FormData | Omit<Student, 'id' | 'created_at' | 'updated_at'> | any): Promise<Student> => {
+    const res = await apiClient.post<any>('/students', payload);
+    return res.data.data || res.data;
   },
 
-  updateStudent: async (id: number, payload: Partial<Student>): Promise<Student> => {
-    const res = await apiClient.put<Student>(`/students/${id}`, payload);
-    return res.data;
+  updateStudent: async (id: number, payload: FormData | Partial<Student> | any): Promise<Student> => {
+    const isFormData = typeof FormData !== 'undefined' && payload instanceof FormData;
+    let res;
+    if (isFormData) {
+      payload.append('_method', 'PUT');
+      res = await apiClient.post<any>(`/students/${id}`, payload);
+    } else {
+      res = await apiClient.put<any>(`/students/${id}`, payload);
+    }
+    return res.data.data || res.data;
   },
 
   deleteStudent: async (id: number): Promise<{ message: string }> => {
     const res = await apiClient.delete<{ message: string }>(`/students/${id}`);
+    return res.data;
+  },
+
+  uploadMedia: async (file: File, collectionName = 'default'): Promise<{ url: string; file_path: string; data: any }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('collection_name', collectionName);
+    const res = await apiClient.post<any>('/media/upload', formData);
     return res.data;
   },
 

@@ -9,6 +9,7 @@ use App\Modules\Academic\Requests\UpdateStudentRequest;
 use App\Modules\Core\Enums\Role;
 use App\Modules\Core\Models\School;
 use App\Modules\Core\Models\User;
+use App\Modules\Media\Services\MediaService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -16,6 +17,13 @@ use Illuminate\Support\Facades\Hash;
 
 class StudentController extends Controller
 {
+    protected MediaService $mediaService;
+
+    public function __construct(MediaService $mediaService)
+    {
+        $this->mediaService = $mediaService;
+    }
+
     public function index(Request $request): JsonResponse
     {
         $query = Student::with(['classLevel', 'section', 'shift', 'user'])
@@ -60,7 +68,25 @@ class StudentController extends Controller
             ?? ($request->header('X-School-Id') ? (int) $request->header('X-School-Id') : null)
             ?? School::first()?->id;
 
-        $student = DB::transaction(function () use ($validated, $request, $schoolId) {
+        $uploadedMedia = [];
+
+        foreach (['student_image', 'parent_image', 'father_image', 'mother_image'] as $imageKey) {
+            if ($request->hasFile($imageKey)) {
+                $collection = ($imageKey === 'student_image') ? 'student_images' : 'parent_images';
+                $media = $this->mediaService->upload(
+                    file: $request->file($imageKey),
+                    schoolId: $schoolId,
+                    collectionName: $collection,
+                    userId: auth()->id()
+                );
+                $validated[$imageKey] = $media->file_path;
+                $uploadedMedia[] = $media;
+            } elseif ($request->filled($imageKey)) {
+                $validated[$imageKey] = $request->input($imageKey);
+            }
+        }
+
+        $student = DB::transaction(function () use ($validated, $request, $schoolId, $uploadedMedia) {
             $fullName = trim("{$validated['first_name']} " . ($validated['last_name'] ?? ''));
 
             // Determine unique student user email
@@ -76,6 +102,8 @@ class StudentController extends Controller
                 }
             }
 
+            $profilePicture = $validated['student_image'] ?? null;
+
             // Create user account with Student role
             $user = User::create([
                 'school_id' => $schoolId,
@@ -84,6 +112,7 @@ class StudentController extends Controller
                 'password' => Hash::make($request->input('password', 'student123')),
                 'role' => Role::Student->value,
                 'phone_number' => $validated['phone_number'] ?? null,
+                'profile_picture' => $profilePicture,
                 'is_active' => true,
             ]);
 
@@ -91,7 +120,16 @@ class StudentController extends Controller
             $validated['user_id'] = $user->id;
             $validated['email'] = $studentEmail;
 
-            return Student::create($validated);
+            $newStudent = Student::create($validated);
+
+            foreach ($uploadedMedia as $m) {
+                $m->update([
+                    'model_type' => Student::class,
+                    'model_id' => $newStudent->id,
+                ]);
+            }
+
+            return $newStudent;
         });
 
         $student->load(['classLevel', 'section', 'shift', 'user']);
@@ -102,9 +140,16 @@ class StudentController extends Controller
         ], 201);
     }
 
-    public function show(Student $student): JsonResponse
+    public function show(Request $request, Student $student): JsonResponse
     {
-        $student->load(['classLevel', 'section', 'shift', 'school', 'academicYear', 'user']);
+        $schoolId = auth()->user()?->school_id
+            ?? ($request->header('X-School-Id') ? (int) $request->header('X-School-Id') : null);
+
+        if ($schoolId && $student->school_id !== $schoolId) {
+            return response()->json(['message' => 'Student record not found in this school.'], 404);
+        }
+
+        $student->load(['classLevel', 'section', 'shift', 'school', 'academicYear', 'user', 'media']);
 
         return response()->json($student);
     }
@@ -112,6 +157,26 @@ class StudentController extends Controller
     public function update(UpdateStudentRequest $request, Student $student): JsonResponse
     {
         $validated = $request->validated();
+        $schoolId = $student->school_id;
+
+        $uploadedMedia = [];
+
+        foreach (['student_image', 'parent_image', 'father_image', 'mother_image'] as $imageKey) {
+            if ($request->hasFile($imageKey)) {
+                $collection = ($imageKey === 'student_image') ? 'student_images' : 'parent_images';
+                $media = $this->mediaService->upload(
+                    file: $request->file($imageKey),
+                    schoolId: $schoolId,
+                    collectionName: $collection,
+                    userId: auth()->id(),
+                    model: $student
+                );
+                $validated[$imageKey] = $media->file_path;
+                $uploadedMedia[] = $media;
+            } elseif ($request->filled($imageKey)) {
+                $validated[$imageKey] = $request->input($imageKey);
+            }
+        }
 
         DB::transaction(function () use ($student, $validated) {
             if ($student->user) {
@@ -123,6 +188,9 @@ class StudentController extends Controller
                 }
                 if (isset($validated['phone_number'])) {
                     $userUpdates['phone_number'] = $validated['phone_number'];
+                }
+                if (isset($validated['student_image'])) {
+                    $userUpdates['profile_picture'] = $validated['student_image'];
                 }
                 if (! empty($userUpdates)) {
                     $student->user()->update($userUpdates);

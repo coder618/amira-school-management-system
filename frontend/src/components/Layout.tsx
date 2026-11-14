@@ -24,6 +24,8 @@ import {
   Edit2,
   Edit3,
   BookOpen,
+  UserPlus,
+  List,
 } from 'lucide-react';
 
 interface NavItem {
@@ -42,17 +44,22 @@ export const Layout: React.FC = () => {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  const isStudentsActive = location.pathname.startsWith('/students');
   const isClassesActive = location.pathname.startsWith('/classes');
   const isFinanceActive = location.pathname.startsWith('/finance');
   const isExamsActive = location.pathname.startsWith('/exams');
 
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({
+    '/students': isStudentsActive,
     '/classes': isClassesActive,
     '/finance': isFinanceActive,
     '/exams': isExamsActive,
   });
 
   useEffect(() => {
+    if (isStudentsActive) {
+      setOpenMenus((prev) => ({ ...prev, '/students': true }));
+    }
     if (isClassesActive) {
       setOpenMenus((prev) => ({ ...prev, '/classes': true }));
     }
@@ -62,7 +69,7 @@ export const Layout: React.FC = () => {
     if (isExamsActive) {
       setOpenMenus((prev) => ({ ...prev, '/exams': true }));
     }
-  }, [isClassesActive, isFinanceActive, isExamsActive]);
+  }, [isStudentsActive, isClassesActive, isFinanceActive, isExamsActive]);
 
   const toggleSubmenu = (menuPath: string) => {
     setOpenMenus((prev) => ({
@@ -76,7 +83,15 @@ export const Layout: React.FC = () => {
       ? [{ label: 'SuperAdmin Console', path: '/super-admin', icon: ShieldCheck }]
       : []),
     { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-    { label: 'Students (SIS)', path: '/students', icon: GraduationCap },
+    {
+      label: 'Students (SIS)',
+      path: '/students',
+      icon: GraduationCap,
+      children: [
+        { label: 'Add Student', path: '/students/create', icon: UserPlus },
+        { label: 'List Student', path: '/students', icon: List },
+      ],
+    },
     {
       label: 'Classes',
       path: '/classes',
@@ -159,7 +174,9 @@ export const Layout: React.FC = () => {
 
             if (item.children && item.children.length > 0) {
               const isChildActive = item.children.some(
-                (c) => location.pathname === c.path || location.pathname.startsWith(c.path)
+                (c) =>
+                  location.pathname === c.path ||
+                  (c.path !== '/students' && location.pathname.startsWith(c.path))
               );
 
               const isOpen = Boolean(openMenus[item.path]);
@@ -194,6 +211,7 @@ export const Layout: React.FC = () => {
                           <NavLink
                             key={sub.path}
                             to={sub.path}
+                            end={sub.path === '/students'}
                             onClick={() => setMobileMenuOpen(false)}
                             className={({ isActive }) =>
                               `flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${

@@ -7,6 +7,9 @@ import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { Dashboard } from './pages/Dashboard';
 import { Students } from './pages/Students';
+import { AddStudentPage } from './pages/AddStudentPage';
+import { StudentProfilePage } from './pages/StudentProfilePage';
+import { EditStudentPage } from './pages/EditStudentPage';
 import { Classes } from './pages/Classes';
 import { ClassSubjectsPage } from './pages/ClassSubjectsPage';
 import { Teachers } from './pages/Teachers';
@@ -38,6 +41,10 @@ export const App: React.FC = () => {
             <Route element={<Layout />}>
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/students" element={<Students />} />
+              <Route path="/students/create" element={<AddStudentPage />} />
+              <Route path="/students/add" element={<AddStudentPage />} />
+              <Route path="/students/:id" element={<StudentProfilePage />} />
+              <Route path="/students/:id/edit" element={<EditStudentPage />} />
               <Route path="/classes" element={<Classes />} />
               <Route path="/classes/manage" element={<Classes />} />
               <Route path="/classes/subjects" element={<ClassSubjectsPage />} />

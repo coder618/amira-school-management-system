@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useStudents } from '../hooks/useStudents';
-import { StudentModal } from './StudentModal';
 import { ClassManagementModal } from './ClassManagementModal';
-import { Student } from '../types';
 import {
   Search,
-  Plus,
   Trash2,
   Edit,
   Phone,
@@ -16,6 +14,8 @@ import {
   Loader2,
   AlertCircle,
   Layers,
+  UserPlus,
+  Eye,
 } from 'lucide-react';
 
 export const StudentDataTable: React.FC = () => {
@@ -23,44 +23,21 @@ export const StudentDataTable: React.FC = () => {
     students,
     classLevels,
     sections,
-    shifts,
     loading,
     error,
     filters,
     setFilters,
-    addStudent,
-    updateStudent,
     removeStudent,
     addClassLevel,
     editClassLevel,
     removeClassLevel,
   } = useStudents();
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [isClassModalOpen, setIsClassModalOpen] = useState(false);
-  const [editingStudent, setEditingStudent] = useState<Student | null>(null);
-
-  const handleOpenAdd = () => {
-    setEditingStudent(null);
-    setIsModalOpen(true);
-  };
-
-  const handleOpenEdit = (student: Student) => {
-    setEditingStudent(student);
-    setIsModalOpen(true);
-  };
 
   const handleDelete = async (id: number) => {
     if (window.confirm('Are you sure you want to delete this student record?')) {
       await removeStudent(id);
-    }
-  };
-
-  const handleModalSubmit = async (formData: any) => {
-    if (editingStudent) {
-      await updateStudent(editingStudent.id, formData);
-    } else {
-      await addStudent(formData);
     }
   };
 
@@ -88,14 +65,13 @@ export const StudentDataTable: React.FC = () => {
             <span>Manage Classes</span>
           </button>
 
-          <button
-            type="button"
-            onClick={handleOpenAdd}
+          <Link
+            to="/students/create"
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-indigo-600/20 hover:bg-indigo-700 transition-all cursor-pointer"
           >
-            <Plus className="h-4 w-4" />
-            <span>Enroll New Student</span>
-          </button>
+            <UserPlus className="h-4 w-4" />
+            <span>Add Student</span>
+          </Link>
         </div>
       </div>
 
@@ -195,12 +171,32 @@ export const StudentDataTable: React.FC = () => {
 
                     {/* Student Info */}
                     <td className="py-3.5 px-4">
-                      <div className="font-bold text-slate-900">
-                        {student.first_name} {student.last_name}
-                      </div>
-                      <span className="text-xs font-mono text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
-                        {student.student_id}
-                      </span>
+                      <Link
+                        to={`/students/${student.id}`}
+                        className="flex items-center gap-3 group"
+                        title="View Student Profile"
+                      >
+                        {student.student_image_url ? (
+                          <img
+                            src={student.student_image_url}
+                            alt={student.first_name}
+                            className="h-9 w-9 rounded-full object-cover border border-slate-200 shadow-2xs shrink-0 group-hover:border-indigo-400 transition-colors"
+                          />
+                        ) : (
+                          <div className="h-9 w-9 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-xs shrink-0 group-hover:bg-indigo-100 transition-colors">
+                            {student.first_name.charAt(0)}
+                            {student.last_name ? student.last_name.charAt(0) : ''}
+                          </div>
+                        )}
+                        <div>
+                          <div className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
+                            {student.first_name} {student.last_name}
+                          </div>
+                          <span className="text-xs font-mono text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
+                            {student.student_id}
+                          </span>
+                        </div>
+                      </Link>
                     </td>
 
                     {/* Class & Section */}
@@ -227,8 +223,18 @@ export const StudentDataTable: React.FC = () => {
 
                     {/* Parents & Phone */}
                     <td className="py-3.5 px-4 text-xs space-y-0.5">
-                      <div className="font-medium text-slate-800">
-                        F: {student.father_name}
+                      <div className="flex items-center gap-1.5">
+                        {student.parent_image_url && (
+                          <img
+                            src={student.parent_image_url}
+                            alt="Parent"
+                            className="h-4 w-4 rounded-full object-cover border border-slate-200"
+                            title="Parent photo uploaded"
+                          />
+                        )}
+                        <span className="font-medium text-slate-800">
+                          F: {student.father_name}
+                        </span>
                       </div>
                       <div className="flex items-center gap-1 text-slate-500 font-mono">
                         <Phone className="h-3 w-3 text-slate-400" />
@@ -252,14 +258,20 @@ export const StudentDataTable: React.FC = () => {
                     {/* Actions */}
                     <td className="py-3.5 px-4 text-right">
                       <div className="inline-flex items-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() => handleOpenEdit(student)}
+                        <Link
+                          to={`/students/${student.id}`}
                           className="rounded-lg p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors cursor-pointer"
-                          title="Edit Student"
+                          title="View Student Profile"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Link>
+                        <Link
+                          to={`/students/${student.id}/edit`}
+                          className="rounded-lg p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors cursor-pointer"
+                          title="Edit Student Profile"
                         >
                           <Edit className="h-4 w-4" />
-                        </button>
+                        </Link>
                         <button
                           type="button"
                           onClick={() => handleDelete(student.id)}
@@ -279,19 +291,6 @@ export const StudentDataTable: React.FC = () => {
       </div>
 
       {/* Modals */}
-      <StudentModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSubmit={handleModalSubmit}
-        classLevels={classLevels}
-        sections={sections}
-        shifts={shifts}
-        initialData={editingStudent}
-        onAddClass={addClassLevel}
-        onUpdateClass={editClassLevel}
-        onDeleteClass={removeClassLevel}
-      />
-
       <ClassManagementModal
         isOpen={isClassModalOpen}
         onClose={() => setIsClassModalOpen(false)}

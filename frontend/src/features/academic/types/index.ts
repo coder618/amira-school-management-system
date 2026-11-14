@@ -47,12 +47,41 @@ export interface Student extends TenantEntity {
   gender: 'Male' | 'Female' | 'Other';
   date_of_birth?: string;
   address?: string;
+  student_image?: string | null;
+  parent_image?: string | null;
+  father_image?: string | null;
+  mother_image?: string | null;
+  student_image_url?: string | null;
+  parent_image_url?: string | null;
+  father_image_url?: string | null;
+  mother_image_url?: string | null;
   status: 'active' | 'inactive' | 'graduated' | 'suspended';
   enrollment_date?: string;
   class_level?: ClassLevel;
   section?: Section;
   shift?: Shift;
   school?: School;
+  academic_year?: {
+    id: number;
+    title: string;
+    start_date?: string;
+    end_date?: string;
+  };
+  academicYear?: {
+    id: number;
+    title: string;
+    start_date?: string;
+    end_date?: string;
+  };
+  user?: {
+    id: number;
+    name: string;
+    email: string;
+    role: string;
+    phone_number?: string;
+    profile_picture?: string;
+    profile_picture_url?: string;
+  };
 }
 
 export interface StudentFilterParams {

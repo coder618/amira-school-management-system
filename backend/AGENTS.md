@@ -102,6 +102,16 @@ The architecture follows a strict Domain-Driven modular structure in `app/Module
     *   Soft deletes: User can soft delete their own notifications into trash, view archived, restore, or empty trash.
     *   Strict ownership authorization: A user can only inspect, read, unread, or soft delete notifications belonging to their own `user_id`.
 
+### 12. Media Module (Tenant File & Cloud Storage)
+*   **Location:** `app/Modules/Media`
+*   **Entities:** `Media` (`media` table with school_id, user_id, model_type, model_id, collection_name, name, file_name, mime_type, disk, size, file_path, custom_properties).
+*   **Logic:**
+    *   Multi-tenant isolated by `school_id`. Files stored under `tenants/{school_id}/{collection_name}/`.
+    *   Plug-and-play storage disk: defaults to `public` local storage, ready for Cloudflare R2 / S3 via `FILESYSTEM_DISK` or `MEDIA_DISK`.
+    *   Media endpoints: `POST /api/media/upload`, `GET /api/media`, `DELETE /api/media/{media}`.
+    *   Integrated with Academic SIS for `student_image`, `parent_image`, `father_image`, and `mother_image`.
+
+
 # Execution Steps for Antigravity
 1. Scaffold the backend directory structure (`app/Modules/`).
 2. Generate all Laravel Migrations in proper dependency order (Core -> Academic -> HR -> Attendance -> Finance -> Exam).

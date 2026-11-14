@@ -6,6 +6,9 @@ export const ROUTES = {
   DASHBOARD: '/dashboard',
   ACADEMIC: {
     STUDENTS: '/students',
+    STUDENTS_ADD: '/students/create',
+    STUDENT_VIEW: '/students/:id',
+    STUDENT_EDIT: '/students/:id/edit',
     CLASS_LEVELS: '/classes',
     CLASSES_MANAGE: '/classes/manage',
     CLASS_SUBJECTS: '/classes/subjects',
