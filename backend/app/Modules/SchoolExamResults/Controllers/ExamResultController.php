@@ -81,10 +81,18 @@ class ExamResultController extends Controller
             $academicYearId = $currentYear?->id ?? AcademicYear::first()?->id;
         }
 
-        $subMark = (float) $validated['subjective_mark'];
-        $objMark = (float) $validated['objective_mark'];
-        $pracMark = (float) ($validated['practical_mark'] ?? 0);
-        $totalMark = $subMark + $objMark + $pracMark;
+        $mark = $validated['mark'] ?? $validated['total_mark'] ?? null;
+        if ($mark !== null) {
+            $totalMark = (float) $mark;
+            $subMark = (float) $mark;
+            $objMark = 0.0;
+            $pracMark = 0.0;
+        } else {
+            $subMark = (float) ($validated['subjective_mark'] ?? 0);
+            $objMark = (float) ($validated['objective_mark'] ?? 0);
+            $pracMark = (float) ($validated['practical_mark'] ?? 0);
+            $totalMark = $subMark + $objMark + $pracMark;
+        }
 
         $gradeData = $this->gradingService->calculateSubjectGrade($totalMark);
 
@@ -104,6 +112,7 @@ class ExamResultController extends Controller
                 'is_4th_subject' => (bool) ($validated['is_4th_subject'] ?? false),
                 'gpa' => $gradeData['gpa'],
                 'grade' => $gradeData['grade'],
+                'note' => $validated['note'] ?? null,
             ]
         );
 
@@ -133,14 +142,22 @@ class ExamResultController extends Controller
 
         $validated = $request->validated();
 
-        $subMark = isset($validated['subjective_mark']) ? (float) $validated['subjective_mark'] : (float) $examResult->subjective_mark;
-        $objMark = isset($validated['objective_mark']) ? (float) $validated['objective_mark'] : (float) $examResult->objective_mark;
-        $pracMark = array_key_exists('practical_mark', $validated) ? (float) $validated['practical_mark'] : (float) $examResult->practical_mark;
-        $totalMark = $subMark + $objMark + $pracMark;
+        $mark = $validated['mark'] ?? $validated['total_mark'] ?? null;
+        if ($mark !== null) {
+            $totalMark = (float) $mark;
+            $subMark = (float) $mark;
+            $objMark = 0.0;
+            $pracMark = 0.0;
+        } else {
+            $subMark = isset($validated['subjective_mark']) ? (float) $validated['subjective_mark'] : (float) $examResult->subjective_mark;
+            $objMark = isset($validated['objective_mark']) ? (float) $validated['objective_mark'] : (float) $examResult->objective_mark;
+            $pracMark = array_key_exists('practical_mark', $validated) ? (float) $validated['practical_mark'] : (float) $examResult->practical_mark;
+            $totalMark = $subMark + $objMark + $pracMark;
+        }
 
         $gradeData = $this->gradingService->calculateSubjectGrade($totalMark);
 
-        $examResult->update([
+        $updateData = [
             'subjective_mark' => $subMark,
             'objective_mark' => $objMark,
             'practical_mark' => $pracMark,
@@ -148,7 +165,13 @@ class ExamResultController extends Controller
             'is_4th_subject' => array_key_exists('is_4th_subject', $validated) ? (bool) $validated['is_4th_subject'] : $examResult->is_4th_subject,
             'gpa' => $gradeData['gpa'],
             'grade' => $gradeData['grade'],
-        ]);
+        ];
+
+        if (array_key_exists('note', $validated)) {
+            $updateData['note'] = $validated['note'];
+        }
+
+        $examResult->update($updateData);
 
         $examResult->load(['student', 'subject', 'exam']);
 
@@ -240,10 +263,13 @@ class ExamResultController extends Controller
             'exam_id' => 'required|exists:exams,id',
             'marks' => 'required|array',
             'marks.*.subject_id' => 'required|exists:subjects,id',
-            'marks.*.subjective_mark' => 'required|numeric|min:0|max:100',
-            'marks.*.objective_mark' => 'required|numeric|min:0|max:100',
+            'marks.*.mark' => 'nullable|numeric|min:0|max:100',
+            'marks.*.total_mark' => 'nullable|numeric|min:0|max:100',
+            'marks.*.subjective_mark' => 'nullable|numeric|min:0|max:100',
+            'marks.*.objective_mark' => 'nullable|numeric|min:0|max:100',
             'marks.*.practical_mark' => 'nullable|numeric|min:0|max:100',
             'marks.*.is_4th_subject' => 'nullable|boolean',
+            'marks.*.note' => 'nullable|string|max:1000',
         ]);
 
         $studentId = (int) $validated['student_id'];
@@ -265,10 +291,17 @@ class ExamResultController extends Controller
 
         DB::transaction(function () use ($validated, $studentId, $examId, $schoolId, $academicYearId) {
             foreach ($validated['marks'] as $row) {
-                $subMark = (float) $row['subjective_mark'];
-                $objMark = (float) $row['objective_mark'];
-                $pracMark = (float) ($row['practical_mark'] ?? 0);
-                $totalMark = $subMark + $objMark + $pracMark;
+                if (isset($row['mark']) || isset($row['total_mark'])) {
+                    $totalMark = (float) ($row['mark'] ?? $row['total_mark']);
+                    $subMark = $totalMark;
+                    $objMark = 0.0;
+                    $pracMark = 0.0;
+                } else {
+                    $subMark = (float) ($row['subjective_mark'] ?? 0);
+                    $objMark = (float) ($row['objective_mark'] ?? 0);
+                    $pracMark = (float) ($row['practical_mark'] ?? 0);
+                    $totalMark = $subMark + $objMark + $pracMark;
+                }
 
                 $gradeData = $this->gradingService->calculateSubjectGrade($totalMark);
 
@@ -288,6 +321,7 @@ class ExamResultController extends Controller
                         'is_4th_subject' => (bool) ($row['is_4th_subject'] ?? false),
                         'gpa' => $gradeData['gpa'],
                         'grade' => $gradeData['grade'],
+                        'note' => $row['note'] ?? null,
                     ]
                 );
             }

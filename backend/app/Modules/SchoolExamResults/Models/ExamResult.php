@@ -31,6 +31,7 @@ class ExamResult extends Model
         'is_4th_subject',
         'gpa',
         'grade',
+        'note',
     ];
 
     protected function casts(): array

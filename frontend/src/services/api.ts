@@ -188,7 +188,7 @@ export const schoolExamResultsApi = {
     const res = await apiClient.get<SchoolExamResult[]>('/school-exam-results', { params });
     return res.data;
   },
-  create: async (data: { exam_id: number; subject_id: number; student_id: number; subjective_mark: number; objective_mark: number; practical_mark?: number; is_4th_subject?: boolean }): Promise<SchoolExamResult> => {
+  create: async (data: { exam_id: number; subject_id: number; student_id: number; mark?: number; total_mark?: number; subjective_mark?: number; objective_mark?: number; practical_mark?: number; is_4th_subject?: boolean; note?: string | null }): Promise<SchoolExamResult> => {
     const res = await apiClient.post<SchoolExamResult>('/school-exam-results', data);
     return res.data;
   },
@@ -218,7 +218,7 @@ export const schoolExamResultsApi = {
     const res = await apiClient.get<TabulationData>(`/school-exam-results/tabulation/${examId}/class/${classLevelId}`);
     return res.data;
   },
-  update: async (id: number, data: Partial<{ subjective_mark: number; objective_mark: number; practical_mark?: number; is_4th_subject?: boolean }>): Promise<SchoolExamResult> => {
+  update: async (id: number, data: Partial<{ mark?: number; total_mark?: number; subjective_mark: number; objective_mark: number; practical_mark?: number; is_4th_subject?: boolean; note?: string | null }>): Promise<SchoolExamResult> => {
     const res = await apiClient.put<SchoolExamResult>(`/school-exam-results/${id}`, data);
     return res.data;
   },

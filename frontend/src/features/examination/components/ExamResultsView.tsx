@@ -422,16 +422,23 @@ export const ExamResultsView: React.FC = () => {
             <span>Manage Exam Marks</span>
           </button>
 
-          {classStudents.length > 0 && (
-            <button
-              type="button"
-              onClick={() => openStudentResultModal(classStudents[0])}
-              className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-indigo-600/20 hover:bg-indigo-700 transition-all cursor-pointer"
-            >
-              <Plus className="h-4 w-4" />
-              <span>Record Student Result</span>
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => {
+              if (classStudents.length > 0) {
+                openStudentResultModal(classStudents[0]);
+              } else {
+                setFeedback({
+                  type: 'error',
+                  message: `No enrolled students found in ${classLevels.find((c) => c.id === selectedClassId)?.name || 'the selected class'}. Please switch to a class with enrolled students (e.g. Class 10) or enroll students in Students (SIS).`,
+                });
+              }
+            }}
+            className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-indigo-600/20 hover:bg-indigo-700 transition-all cursor-pointer"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Record Student Result</span>
+          </button>
         </div>
       </div>
 
@@ -615,16 +622,23 @@ export const ExamResultsView: React.FC = () => {
               Select another class or exam, or record marks for students in this class.
             </p>
             <div className="mt-4 flex items-center justify-center gap-3">
-              {classStudents.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => openStudentResultModal(classStudents[0])}
-                  className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-indigo-700 transition-all cursor-pointer"
-                >
-                  <Plus className="h-4 w-4" />
-                  <span>Record First Result</span>
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => {
+                  if (classStudents.length > 0) {
+                    openStudentResultModal(classStudents[0]);
+                  } else {
+                    setFeedback({
+                      type: 'error',
+                      message: `No enrolled students found in ${classLevels.find((c) => c.id === selectedClassId)?.name || 'the selected class'}. Please switch to a class with enrolled students (e.g. Class 10) or enroll students in Students (SIS).`,
+                    });
+                  }
+                }}
+                className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-indigo-700 transition-all cursor-pointer"
+              >
+                <Plus className="h-4 w-4" />
+                <span>Record Student Result</span>
+              </button>
               <button
                 type="button"
                 onClick={() => navigate('/exams/marks-entry')}
@@ -897,6 +911,7 @@ export const ExamResultsView: React.FC = () => {
                         <td className="py-2.5 px-3 text-center">
                           <input
                             type="number"
+                            step="any"
                             min={0}
                             max={100}
                             value={row.subjective_mark}
@@ -915,6 +930,7 @@ export const ExamResultsView: React.FC = () => {
                         <td className="py-2.5 px-3 text-center">
                           <input
                             type="number"
+                            step="any"
                             min={0}
                             max={100}
                             value={row.objective_mark}
@@ -933,6 +949,7 @@ export const ExamResultsView: React.FC = () => {
                         <td className="py-2.5 px-3 text-center">
                           <input
                             type="number"
+                            step="any"
                             min={0}
                             max={100}
                             value={row.practical_mark}

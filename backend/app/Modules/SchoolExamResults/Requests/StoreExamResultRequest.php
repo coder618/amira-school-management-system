@@ -47,10 +47,13 @@ class StoreExamResultRequest extends FormRequest
                     return $query;
                 }),
             ],
-            'subjective_mark' => 'required|numeric|min:0|max:100',
-            'objective_mark' => 'required|numeric|min:0|max:100',
+            'mark' => 'nullable|numeric|min:0|max:100',
+            'total_mark' => 'nullable|numeric|min:0|max:100',
+            'subjective_mark' => 'nullable|numeric|min:0|max:100',
+            'objective_mark' => 'nullable|numeric|min:0|max:100',
             'practical_mark' => 'nullable|numeric|min:0|max:100',
             'is_4th_subject' => 'nullable|boolean',
+            'note' => 'nullable|string|max:1000',
         ];
     }
 

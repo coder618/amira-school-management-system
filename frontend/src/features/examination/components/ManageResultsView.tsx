@@ -24,6 +24,7 @@ import {
   Trophy,
   Users,
   Printer,
+  FileText,
 } from 'lucide-react';
 
 export const ManageResultsView: React.FC = () => {
@@ -66,15 +67,22 @@ export const ManageResultsView: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Add Form state
-  const [addForm, setAddForm] = useState({
+  const [addForm, setAddForm] = useState<{
+    exam_id: number;
+    class_level_id: number;
+    student_id: number;
+    subject_id: number;
+    mark: number | string;
+    is_4th_subject: boolean;
+    note: string;
+  }>({
     exam_id: 0,
     class_level_id: 0,
     student_id: 0,
     subject_id: 0,
-    subjective_mark: 0,
-    objective_mark: 0,
-    practical_mark: 0,
+    mark: '',
     is_4th_subject: false,
+    note: '',
   });
 
   // Modal dynamic class subjects and students
@@ -83,11 +91,14 @@ export const ManageResultsView: React.FC = () => {
   const [loadingModalData, setLoadingModalData] = useState(false);
 
   // Edit Form state
-  const [editForm, setEditForm] = useState({
-    subjective_mark: 0,
-    objective_mark: 0,
-    practical_mark: 0,
+  const [editForm, setEditForm] = useState<{
+    mark: number | string;
+    is_4th_subject: boolean;
+    note: string;
+  }>({
+    mark: '',
     is_4th_subject: false,
+    note: '',
   });
 
   // Load initial dropdowns (Exams & Classes)
@@ -276,10 +287,9 @@ export const ManageResultsView: React.FC = () => {
         class_level_id: initialClassId,
         subject_id: subData[0]?.id ?? 0,
         student_id: stuData[0]?.id ?? 0,
-        subjective_mark: 0,
-        objective_mark: 0,
-        practical_mark: 0,
+        mark: '',
         is_4th_subject: Boolean(subData[0]?.can_be_4th_subject),
+        note: '',
       });
     } catch (err) {
       console.error('Failed to initialize add form modal data', err);
@@ -296,16 +306,30 @@ export const ManageResultsView: React.FC = () => {
       return;
     }
 
+    if (addForm.mark === '' || isNaN(Number(addForm.mark))) {
+      setFeedback({ type: 'error', message: 'Please enter a valid numeric mark.' });
+      return;
+    }
+
+    const numericMark = parseFloat(String(addForm.mark));
+    if (numericMark < 0 || numericMark > 100) {
+      setFeedback({ type: 'error', message: 'Mark must be between 0 and 100.' });
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       await schoolExamResultsApi.create({
         exam_id: addForm.exam_id,
         subject_id: addForm.subject_id,
         student_id: addForm.student_id,
-        subjective_mark: Number(addForm.subjective_mark) || 0,
-        objective_mark: Number(addForm.objective_mark) || 0,
-        practical_mark: Number(addForm.practical_mark) || 0,
+        mark: numericMark,
+        total_mark: numericMark,
+        subjective_mark: numericMark,
+        objective_mark: 0,
+        practical_mark: 0,
         is_4th_subject: addForm.is_4th_subject,
+        note: addForm.note.trim() || null,
       });
 
       setFeedback({ type: 'success', message: 'Student mark recorded successfully.' });
@@ -323,10 +347,9 @@ export const ManageResultsView: React.FC = () => {
   const openEditModal = (result: SchoolExamResult) => {
     setSelectedResultForEdit(result);
     setEditForm({
-      subjective_mark: result.subjective_mark,
-      objective_mark: result.objective_mark,
-      practical_mark: result.practical_mark || 0,
+      mark: result.total_mark ?? result.subjective_mark ?? 0,
       is_4th_subject: Boolean(result.is_4th_subject),
+      note: result.note || '',
     });
   };
 
@@ -335,13 +358,27 @@ export const ManageResultsView: React.FC = () => {
     e.preventDefault();
     if (!selectedResultForEdit) return;
 
+    if (editForm.mark === '' || isNaN(Number(editForm.mark))) {
+      setFeedback({ type: 'error', message: 'Please enter a valid numeric mark.' });
+      return;
+    }
+
+    const numericMark = parseFloat(String(editForm.mark));
+    if (numericMark < 0 || numericMark > 100) {
+      setFeedback({ type: 'error', message: 'Mark must be between 0 and 100.' });
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       await schoolExamResultsApi.update(selectedResultForEdit.id, {
-        subjective_mark: Number(editForm.subjective_mark) || 0,
-        objective_mark: Number(editForm.objective_mark) || 0,
-        practical_mark: Number(editForm.practical_mark) || 0,
+        mark: numericMark,
+        total_mark: numericMark,
+        subjective_mark: numericMark,
+        objective_mark: 0,
+        practical_mark: 0,
         is_4th_subject: editForm.is_4th_subject,
+        note: editForm.note.trim() || null,
       });
 
       setFeedback({ type: 'success', message: 'Student mark updated successfully.' });
@@ -415,17 +452,11 @@ export const ManageResultsView: React.FC = () => {
   };
 
   // Add Form live preview calculations
-  const addTotal =
-    Number(addForm.subjective_mark || 0) +
-    Number(addForm.objective_mark || 0) +
-    Number(addForm.practical_mark || 0);
+  const addTotal = addForm.mark !== '' ? parseFloat(String(addForm.mark)) || 0 : 0;
   const addGrade = calculateLocalGrade(addTotal);
 
   // Edit Form live preview calculations
-  const editTotal =
-    Number(editForm.subjective_mark || 0) +
-    Number(editForm.objective_mark || 0) +
-    Number(editForm.practical_mark || 0);
+  const editTotal = editForm.mark !== '' ? parseFloat(String(editForm.mark)) || 0 : 0;
   const editGrade = calculateLocalGrade(editTotal);
 
   return (
@@ -689,13 +720,11 @@ export const ManageResultsView: React.FC = () => {
                   <th className="py-3 px-4">Roll</th>
                   <th className="py-3 px-4">Student</th>
                   <th className="py-3 px-3">Subject</th>
-                  <th className="py-3 px-3 text-center">CQ</th>
-                  <th className="py-3 px-3 text-center">MCQ</th>
-                  <th className="py-3 px-3 text-center">Practical</th>
-                  <th className="py-3 px-3 text-center">Total</th>
+                  <th className="py-3 px-3 text-center">Mark</th>
                   <th className="py-3 px-3 text-center">Grade</th>
                   <th className="py-3 px-3 text-center">GPA</th>
                   <th className="py-3 px-3 text-center">4th Sub</th>
+                  <th className="py-3 px-3">Note</th>
                   <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
               </thead>
@@ -725,24 +754,16 @@ export const ManageResultsView: React.FC = () => {
                       )}
                     </td>
 
-                    {/* CQ */}
-                    <td className="py-3 px-3 text-center font-mono font-medium text-slate-700">
-                      {result.subjective_mark}
-                    </td>
-
-                    {/* MCQ */}
-                    <td className="py-3 px-3 text-center font-mono font-medium text-slate-700">
-                      {result.objective_mark}
-                    </td>
-
-                    {/* Practical */}
-                    <td className="py-3 px-3 text-center font-mono font-medium text-slate-700">
-                      {result.practical_mark || 0}
-                    </td>
-
-                    {/* Total */}
-                    <td className="py-3 px-3 text-center font-mono font-bold text-slate-900">
-                      {result.total_mark}
+                    {/* Mark */}
+                    <td className="py-3 px-3 text-center">
+                      <span className="font-mono font-bold text-slate-900 text-sm">
+                        {result.total_mark}
+                      </span>
+                      {(Number(result.objective_mark) > 0 || Number(result.practical_mark) > 0) && (
+                        <span className="text-[10px] text-slate-400 block font-normal font-mono">
+                          CQ:{result.subjective_mark} M:{result.objective_mark} P:{result.practical_mark}
+                        </span>
+                      )}
                     </td>
 
                     {/* Grade */}
@@ -769,6 +790,18 @@ export const ManageResultsView: React.FC = () => {
                         </span>
                       ) : (
                         <span className="text-slate-300 text-xs">-</span>
+                      )}
+                    </td>
+
+                    {/* Note */}
+                    <td className="py-3 px-3 text-xs text-slate-600 max-w-[200px]">
+                      {result.note ? (
+                        <span className="inline-flex items-center gap-1 line-clamp-2 text-slate-600 bg-slate-50 px-2 py-1 rounded border border-slate-200" title={result.note}>
+                          <FileText className="h-3 w-3 text-slate-400 shrink-0" />
+                          <span className="truncate">{result.note}</span>
+                        </span>
+                      ) : (
+                        <span className="text-slate-300">-</span>
                       )}
                     </td>
 
@@ -947,55 +980,44 @@ export const ManageResultsView: React.FC = () => {
                 </div>
               </div>
 
-              {/* Marks Inputs */}
-              <div className="grid grid-cols-3 gap-3 pt-2">
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1">
-                    Creative (CQ)
-                  </label>
+              {/* Single Numeric Mark (Accepts Fractions) */}
+              <div className="pt-1">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">
+                  Mark <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
                   <input
                     type="number"
+                    step="any"
                     min={0}
                     max={100}
-                    value={addForm.subjective_mark}
-                    onChange={(e) =>
-                      setAddForm({ ...addForm, subjective_mark: parseFloat(e.target.value) || 0 })
-                    }
-                    className="w-full rounded-lg border border-slate-300 py-2 px-3 text-sm font-mono font-bold text-center focus:border-indigo-600 focus:outline-hidden"
+                    value={addForm.mark}
+                    onChange={(e) => setAddForm({ ...addForm, mark: e.target.value })}
+                    placeholder="Enter mark (e.g. 85.5 or 90)"
+                    required
+                    className="w-full rounded-lg border border-slate-300 py-2.5 px-3.5 text-base font-mono font-bold text-slate-900 placeholder:text-slate-400 placeholder:font-normal focus:border-indigo-600 focus:outline-hidden"
                   />
+                  <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-medium text-slate-400 font-mono">
+                    / 100
+                  </span>
                 </div>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Enter obtained mark (accepts decimal fractions, e.g. 78.50).
+                </p>
+              </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1">
-                    Objective (MCQ)
-                  </label>
-                  <input
-                    type="number"
-                    min={0}
-                    max={100}
-                    value={addForm.objective_mark}
-                    onChange={(e) =>
-                      setAddForm({ ...addForm, objective_mark: parseFloat(e.target.value) || 0 })
-                    }
-                    className="w-full rounded-lg border border-slate-300 py-2 px-3 text-sm font-mono font-bold text-center focus:border-indigo-600 focus:outline-hidden"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1">
-                    Practical
-                  </label>
-                  <input
-                    type="number"
-                    min={0}
-                    max={100}
-                    value={addForm.practical_mark}
-                    onChange={(e) =>
-                      setAddForm({ ...addForm, practical_mark: parseFloat(e.target.value) || 0 })
-                    }
-                    className="w-full rounded-lg border border-slate-300 py-2 px-3 text-sm font-mono font-bold text-center focus:border-indigo-600 focus:outline-hidden"
-                  />
-                </div>
+              {/* Note / Remarks Field */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">
+                  Note <span className="text-slate-400 font-normal lowercase">(optional)</span>
+                </label>
+                <textarea
+                  rows={2}
+                  value={addForm.note}
+                  onChange={(e) => setAddForm({ ...addForm, note: e.target.value })}
+                  placeholder="Add an optional note (e.g. Special exam, Retake, Absent...)"
+                  className="w-full rounded-lg border border-slate-300 py-2 px-3 text-sm text-slate-800 placeholder:text-slate-400 focus:border-indigo-600 focus:outline-hidden resize-none"
+                />
               </div>
 
               {/* 4th Subject Rule Checkbox */}
@@ -1092,55 +1114,44 @@ export const ManageResultsView: React.FC = () => {
             </div>
 
             <form onSubmit={handleEditSubmit} className="p-6 space-y-4">
-              {/* Marks Inputs */}
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1">
-                    Creative (CQ)
-                  </label>
+              {/* Single Numeric Mark (Accepts Fractions) */}
+              <div className="pt-1">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">
+                  Mark <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
                   <input
                     type="number"
+                    step="any"
                     min={0}
                     max={100}
-                    value={editForm.subjective_mark}
-                    onChange={(e) =>
-                      setEditForm({ ...editForm, subjective_mark: parseFloat(e.target.value) || 0 })
-                    }
-                    className="w-full rounded-lg border border-slate-300 py-2 px-3 text-sm font-mono font-bold text-center focus:border-indigo-600 focus:outline-hidden"
+                    value={editForm.mark}
+                    onChange={(e) => setEditForm({ ...editForm, mark: e.target.value })}
+                    placeholder="Enter mark (e.g. 85.5 or 90)"
+                    required
+                    className="w-full rounded-lg border border-slate-300 py-2.5 px-3.5 text-base font-mono font-bold text-slate-900 placeholder:text-slate-400 placeholder:font-normal focus:border-indigo-600 focus:outline-hidden"
                   />
+                  <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-medium text-slate-400 font-mono">
+                    / 100
+                  </span>
                 </div>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Enter obtained mark (accepts decimal fractions, e.g. 78.50).
+                </p>
+              </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1">
-                    Objective (MCQ)
-                  </label>
-                  <input
-                    type="number"
-                    min={0}
-                    max={100}
-                    value={editForm.objective_mark}
-                    onChange={(e) =>
-                      setEditForm({ ...editForm, objective_mark: parseFloat(e.target.value) || 0 })
-                    }
-                    className="w-full rounded-lg border border-slate-300 py-2 px-3 text-sm font-mono font-bold text-center focus:border-indigo-600 focus:outline-hidden"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1">
-                    Practical
-                  </label>
-                  <input
-                    type="number"
-                    min={0}
-                    max={100}
-                    value={editForm.practical_mark}
-                    onChange={(e) =>
-                      setEditForm({ ...editForm, practical_mark: parseFloat(e.target.value) || 0 })
-                    }
-                    className="w-full rounded-lg border border-slate-300 py-2 px-3 text-sm font-mono font-bold text-center focus:border-indigo-600 focus:outline-hidden"
-                  />
-                </div>
+              {/* Note / Remarks Field */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">
+                  Note <span className="text-slate-400 font-normal lowercase">(optional)</span>
+                </label>
+                <textarea
+                  rows={2}
+                  value={editForm.note}
+                  onChange={(e) => setEditForm({ ...editForm, note: e.target.value })}
+                  placeholder="Add an optional note (e.g. Special exam, Retake, Absent...)"
+                  className="w-full rounded-lg border border-slate-300 py-2 px-3 text-sm text-slate-800 placeholder:text-slate-400 focus:border-indigo-600 focus:outline-hidden resize-none"
+                />
               </div>
 
               {/* 4th Subject Rule Checkbox */}

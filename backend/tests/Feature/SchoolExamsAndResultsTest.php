@@ -525,4 +525,58 @@ class SchoolExamsAndResultsTest extends TestCase
             'total_mark' => 80,
         ]);
     }
+
+    public function test_can_record_single_fractional_mark_with_note(): void
+    {
+        $exam = Exam::create([
+            'school_id' => $this->schoolA->id,
+            'academic_year_id' => $this->yearA->id,
+            'name' => 'Monthly Evaluation 2026',
+            'term' => 'First Term',
+            'is_published' => true,
+        ]);
+
+        $response = $this->actingAs($this->adminA)
+            ->withHeaders(['X-School-Id' => $this->schoolA->id])
+            ->postJson('/api/school-exam-results', [
+                'exam_id' => $exam->id,
+                'class_level_id' => $this->classA->id,
+                'subject_id' => $this->mathA->id,
+                'student_id' => $this->studentA->id,
+                'mark' => 88.5,
+                'note' => 'Excellent performance in calculus.',
+            ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('total_mark', '88.50')
+            ->assertJsonPath('grade', 'A+')
+            ->assertJsonPath('note', 'Excellent performance in calculus.');
+
+        $this->assertDatabaseHas('exam_marks', [
+            'exam_id' => $exam->id,
+            'student_id' => $this->studentA->id,
+            'subject_id' => $this->mathA->id,
+            'total_mark' => 88.5,
+            'note' => 'Excellent performance in calculus.',
+        ]);
+
+        // Test update with fractional mark and note
+        $resultId = $response->json('id');
+        $updateResponse = $this->actingAs($this->adminA)
+            ->withHeaders(['X-School-Id' => $this->schoolA->id])
+            ->putJson("/api/school-exam-results/{$resultId}", [
+                'mark' => 92.75,
+                'note' => 'Re-checked and bonus mark added.',
+            ]);
+
+        $updateResponse->assertOk()
+            ->assertJsonPath('total_mark', '92.75')
+            ->assertJsonPath('note', 'Re-checked and bonus mark added.');
+
+        $this->assertDatabaseHas('exam_marks', [
+            'id' => $resultId,
+            'total_mark' => 92.75,
+            'note' => 'Re-checked and bonus mark added.',
+        ]);
+    }
 }

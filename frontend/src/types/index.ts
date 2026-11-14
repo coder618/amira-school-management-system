@@ -85,6 +85,7 @@ export interface SchoolExamResult {
   is_4th_subject: boolean;
   gpa: number;
   grade: string;
+  note?: string | null;
   student?: {
     id: number;
     first_name: string;
