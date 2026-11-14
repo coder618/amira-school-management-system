@@ -55,3 +55,128 @@ export interface DashboardStats {
   recentActivities: Activity[];
 }
 
+export interface SchoolExam {
+  id: number;
+  school_id: number;
+  academic_year_id: number;
+  name: string;
+  term: string;
+  start_date?: string | null;
+  end_date?: string | null;
+  is_published: boolean;
+  marks_count?: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface SchoolExamResult {
+  id: number;
+  school_id: number;
+  academic_year_id: number;
+  student_id: number;
+  exam_id: number;
+  subject_id: number;
+  subjective_mark: number;
+  objective_mark: number;
+  practical_mark: number;
+  total_mark: number;
+  is_4th_subject: boolean;
+  gpa: number;
+  grade: string;
+  student?: {
+    id: number;
+    first_name: string;
+    last_name: string;
+    roll_number: number;
+    student_id: string;
+  };
+  subject?: {
+    id: number;
+    name: string;
+    code?: string;
+  };
+}
+
+export interface TabulationRow {
+  student_id: number;
+  student_code: string;
+  roll_number: number;
+  name: string;
+  section?: string | null;
+  subjects: Record<number, {
+    subjective: number;
+    objective: number;
+    practical: number;
+    total: number;
+    gpa: number;
+    grade: string;
+    is_4th: boolean;
+  } | null>;
+  total_marks: number;
+  final_gpa: number;
+  final_grade: string;
+  passed: boolean;
+  rank?: number | null;
+}
+
+export interface TabulationData {
+  exam: SchoolExam;
+  class_level: {
+    id: number;
+    name: string;
+    numeric_value: number;
+  };
+  subjects: Array<{
+    id: number;
+    name: string;
+    code?: string;
+    full_mark: number;
+  }>;
+  tabulation: TabulationRow[];
+}
+
+export interface FundCollectionName {
+  id: number;
+  school_id: number;
+  academic_year_id?: number | null;
+  name: string;
+  interval: 'Monthly' | 'Quarterly' | '6 Months' | 'Yearly' | 'One-Time';
+  default_amount: number;
+  description?: string | null;
+  is_active: boolean;
+  payments_count?: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface TenantPayment {
+  id: number;
+  school_id: number;
+  academic_year_id?: number | null;
+  fund_collection_name_id: number;
+  student_id: number;
+  receipt_no: string;
+  amount: number;
+  paid_amount: number;
+  due_amount: number;
+  status: 'paid' | 'due' | 'partially_paid' | 'cancelled';
+  payment_method: 'Cash' | 'bKash' | 'Nagad' | 'Bank' | 'Rocket';
+  transaction_id?: string | null;
+  payment_date?: string | null;
+  due_date?: string | null;
+  received_by?: string | null;
+  notes?: string | null;
+  fund_collection_name?: FundCollectionName;
+  student?: {
+    id: number;
+    first_name: string;
+    last_name: string;
+    roll_number: number;
+    student_id: string;
+  };
+  created_at?: string;
+  updated_at?: string;
+}
+
+
+

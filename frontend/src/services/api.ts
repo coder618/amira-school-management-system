@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { AuthResponse, DashboardStats, Student, Course, User } from '../types';
+import { AuthResponse, DashboardStats, Student, Course, User, SchoolExam, SchoolExamResult, TabulationData, FundCollectionName, TenantPayment } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
 
@@ -98,4 +98,98 @@ export const coursesApi = {
     return res.data;
   },
 };
+
+export const schoolExamsApi = {
+  getAll: async (params?: { term?: string; is_published?: boolean; search?: string }): Promise<SchoolExam[]> => {
+    const res = await apiClient.get<SchoolExam[]>('/school-exams', { params });
+    return res.data;
+  },
+  create: async (exam: { name: string; term: string; start_date?: string; end_date?: string; is_published?: boolean }): Promise<SchoolExam> => {
+    const res = await apiClient.post<SchoolExam>('/school-exams', exam);
+    return res.data;
+  },
+  update: async (id: number, exam: Partial<SchoolExam>): Promise<SchoolExam> => {
+    const res = await apiClient.put<SchoolExam>(`/school-exams/${id}`, exam);
+    return res.data;
+  },
+  delete: async (id: number): Promise<{ message: string }> => {
+    const res = await apiClient.delete<{ message: string }>(`/school-exams/${id}`);
+    return res.data;
+  },
+  togglePublish: async (id: number, is_published?: boolean): Promise<{ message: string; is_published: boolean; exam: SchoolExam }> => {
+    const res = await apiClient.patch(`/school-exams/${id}/publish`, { is_published });
+    return res.data;
+  },
+};
+
+export const schoolExamResultsApi = {
+  getAll: async (params?: { exam_id?: number; subject_id?: number; student_id?: number; class_level_id?: number }): Promise<SchoolExamResult[]> => {
+    const res = await apiClient.get<SchoolExamResult[]>('/school-exam-results', { params });
+    return res.data;
+  },
+  create: async (data: { exam_id: number; subject_id: number; student_id: number; subjective_mark: number; objective_mark: number; practical_mark?: number; is_4th_subject?: boolean }): Promise<SchoolExamResult> => {
+    const res = await apiClient.post<SchoolExamResult>('/school-exam-results', data);
+    return res.data;
+  },
+  bulkStore: async (payload: { exam_id: number; subject_id: number; marks: Array<{ student_id: number; subjective_mark: number; objective_mark: number; practical_mark?: number; is_4th_subject?: boolean }> }): Promise<{ message: string; count: number }> => {
+    const res = await apiClient.post<{ message: string; count: number }>('/school-exam-results/bulk', payload);
+    return res.data;
+  },
+  getReportCard: async (studentId: number, examId: number) => {
+    const res = await apiClient.get(`/school-exam-results/report-card/${studentId}/exam/${examId}`);
+    return res.data;
+  },
+  getTabulation: async (examId: number, classLevelId: number): Promise<TabulationData> => {
+    const res = await apiClient.get<TabulationData>(`/school-exam-results/tabulation/${examId}/class/${classLevelId}`);
+    return res.data;
+  },
+};
+
+export const fundCollectionNamesApi = {
+  getAll: async (params?: { interval?: string; is_active?: boolean; search?: string }): Promise<FundCollectionName[]> => {
+    const res = await apiClient.get<FundCollectionName[]>('/fund-collection-names', { params });
+    return res.data;
+  },
+  create: async (data: { name: string; interval: string; default_amount?: number; description?: string; is_active?: boolean }): Promise<FundCollectionName> => {
+    const res = await apiClient.post<FundCollectionName>('/fund-collection-names', data);
+    return res.data;
+  },
+  update: async (id: number, data: Partial<FundCollectionName>): Promise<FundCollectionName> => {
+    const res = await apiClient.put<FundCollectionName>(`/fund-collection-names/${id}`, data);
+    return res.data;
+  },
+  delete: async (id: number): Promise<{ message: string }> => {
+    const res = await apiClient.delete<{ message: string }>(`/fund-collection-names/${id}`);
+    return res.data;
+  },
+};
+
+export const paymentsApi = {
+  getAll: async (params?: { fund_collection_name_id?: number; student_id?: number; status?: string; payment_method?: string; search?: string }): Promise<TenantPayment[]> => {
+    const res = await apiClient.get<TenantPayment[]>('/payments', { params });
+    return res.data;
+  },
+  create: async (data: { fund_collection_name_id: number; student_id: number; amount: number; paid_amount?: number; status?: string; payment_method: string; transaction_id?: string; payment_date?: string; due_date?: string; notes?: string }): Promise<TenantPayment> => {
+    const res = await apiClient.post<TenantPayment>('/payments', data);
+    return res.data;
+  },
+  update: async (id: number, data: Partial<TenantPayment>): Promise<TenantPayment> => {
+    const res = await apiClient.put<TenantPayment>(`/payments/${id}`, data);
+    return res.data;
+  },
+  settle: async (id: number, data: { payment_amount: number; payment_method: string; transaction_id?: string; notes?: string }): Promise<{ message: string; payment: TenantPayment }> => {
+    const res = await apiClient.post<{ message: string; payment: TenantPayment }>(`/payments/${id}/settle`, data);
+    return res.data;
+  },
+  delete: async (id: number): Promise<{ message: string }> => {
+    const res = await apiClient.delete<{ message: string }>(`/payments/${id}`);
+    return res.data;
+  },
+  getStats: async (): Promise<{ total_billed: number; total_collected: number; total_due: number; total_transactions: number; paid_count: number; due_count: number; partially_paid_count: number }> => {
+    const res = await apiClient.get('/payments-stats');
+    return res.data;
+  },
+};
+
+
 

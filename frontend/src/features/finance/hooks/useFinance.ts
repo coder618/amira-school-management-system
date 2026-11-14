@@ -1,71 +1,125 @@
 import { useState, useEffect, useCallback } from 'react';
 import { financeApi } from '../api';
 import { academicApi } from '../../academic/api';
-import { Invoice, FeeCategory, CreateInvoicePayload, RecordPaymentPayload } from '../types';
+import {
+  Payment,
+  FundCollectionName,
+  CreatePaymentPayload,
+  SettlePaymentPayload,
+  CreateFundCollectionNamePayload,
+} from '../types';
 import { Student } from '../../academic/types';
 
 export const useFinance = () => {
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [categories, setCategories] = useState<FeeCategory[]>([]);
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [fundCollections, setFundCollections] = useState<FundCollectionName[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Filters
   const [statusFilter, setStatusFilter] = useState<string>('');
+  const [collectionFilter, setCollectionFilter] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState<string>('');
 
   const fetchFinanceData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [invData, catData, stuData] = await Promise.all([
-        financeApi.getInvoices(statusFilter ? { status: statusFilter } : undefined),
-        financeApi.getFeeCategories(),
+      const [payData, colData, stuData] = await Promise.all([
+        financeApi.getPayments({
+          status: statusFilter || undefined,
+          fund_collection_name_id: collectionFilter || undefined,
+          search: searchQuery || undefined,
+        }),
+        financeApi.getFundCollections(),
         academicApi.getStudents(),
       ]);
-      setInvoices(invData);
-      setCategories(catData);
+      setPayments(payData);
+      setFundCollections(colData);
       setStudents(stuData);
     } catch {
-      setError('Failed to fetch billing and invoice records.');
+      setError('Failed to fetch collections and payment records.');
     } finally {
       setLoading(false);
     }
-  }, [statusFilter]);
+  }, [statusFilter, collectionFilter, searchQuery]);
 
   useEffect(() => {
     fetchFinanceData();
   }, [fetchFinanceData]);
 
-  const addInvoice = async (payload: CreateInvoicePayload) => {
-    const res = await financeApi.createInvoice(payload);
+  // Payment CRUD
+  const addPayment = async (payload: CreatePaymentPayload) => {
+    const res = await financeApi.createPayment(payload);
     await fetchFinanceData();
     return res;
   };
 
-  const addPayment = async (payload: RecordPaymentPayload) => {
-    const res = await financeApi.recordPayment(payload);
+  const settlePayment = async (paymentId: number, payload: SettlePaymentPayload) => {
+    const res = await financeApi.settlePayment(paymentId, payload);
     await fetchFinanceData();
     return res;
   };
 
-  // Financial Aggregate KPIs
-  const totalBilled = invoices.reduce((sum, inv) => sum + Number(inv.amount), 0);
-  const totalCollected = invoices.reduce((sum, inv) => sum + Number(inv.paid_amount), 0);
-  const totalDue = invoices.reduce((sum, inv) => sum + Number(inv.due_amount), 0);
+  const deletePayment = async (paymentId: number) => {
+    const res = await financeApi.deletePayment(paymentId);
+    await fetchFinanceData();
+    return res;
+  };
+
+  // FundCollectionName CRUD
+  const addFundCollection = async (payload: CreateFundCollectionNamePayload) => {
+    const res = await financeApi.createFundCollection(payload);
+    await fetchFinanceData();
+    return res;
+  };
+
+  const updateFundCollection = async (id: number, payload: Partial<CreateFundCollectionNamePayload>) => {
+    const res = await financeApi.updateFundCollection(id, payload);
+    await fetchFinanceData();
+    return res;
+  };
+
+  const deleteFundCollection = async (id: number) => {
+    const res = await financeApi.deleteFundCollection(id);
+    await fetchFinanceData();
+    return res;
+  };
+
+  // Financial Aggregate Metrics
+  const totalBilled = payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+  const totalCollected = payments.reduce((sum, p) => sum + Number(p.paid_amount || 0), 0);
+  const totalDue = payments.reduce((sum, p) => sum + Number(p.due_amount || 0), 0);
+  const transactionCount = payments.length;
 
   return {
-    invoices,
-    categories,
+    payments,
+    fundCollections,
     students,
     loading,
     error,
     statusFilter,
     setStatusFilter,
+    collectionFilter,
+    setCollectionFilter,
+    searchQuery,
+    setSearchQuery,
     totalBilled,
     totalCollected,
     totalDue,
+    transactionCount,
     fetchFinanceData,
-    addInvoice,
     addPayment,
+    settlePayment,
+    deletePayment,
+    addFundCollection,
+    updateFundCollection,
+    deleteFundCollection,
+
+    // Backward compatibility aliases
+    invoices: payments,
+    categories: fundCollections,
+    addInvoice: addPayment,
   };
 };
-

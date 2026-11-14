@@ -232,62 +232,78 @@ class DatabaseSeeder extends Seeder
                     }
                 }
 
-                // 6. Fee Categories & Sample Invoices
-                $tuitionCategory = \App\Modules\Finance\Models\FeeCategory::firstOrCreate(
+                // 6. Fund Collection Names & Sample Payments
+                $monthlyFee = \App\Modules\FundCollectionName\Models\FundCollectionName::firstOrCreate(
                     ['school_id' => $school->id, 'name' => 'Monthly Tuition Fee'],
-                    ['description' => 'Regular academic monthly tuition charge']
+                    [
+                        'academic_year_id' => $year->id,
+                        'interval' => 'Monthly',
+                        'default_amount' => 2500.00,
+                        'description' => 'Regular academic monthly tuition charge',
+                        'is_active' => true,
+                    ]
                 );
-                $examCategory = \App\Modules\Finance\Models\FeeCategory::firstOrCreate(
-                    ['school_id' => $school->id, 'name' => 'First Term Exam Fee'],
-                    ['description' => 'Examination and answer sheet logistics']
+                $examFee = \App\Modules\FundCollectionName\Models\FundCollectionName::firstOrCreate(
+                    ['school_id' => $school->id, 'name' => 'Term Examination Fee'],
+                    [
+                        'academic_year_id' => $year->id,
+                        'interval' => '6 Months',
+                        'default_amount' => 1200.00,
+                        'description' => 'Semester examination logistics & answer scripts',
+                        'is_active' => true,
+                    ]
+                );
+                \App\Modules\FundCollectionName\Models\FundCollectionName::firstOrCreate(
+                    ['school_id' => $school->id, 'name' => 'Annual Admission & Session Fee'],
+                    [
+                        'academic_year_id' => $year->id,
+                        'interval' => 'Yearly',
+                        'default_amount' => 8000.00,
+                        'description' => 'Annual institutional session and development fund',
+                        'is_active' => true,
+                    ]
                 );
 
                 $firstStudent = Student::where('student_id', 'STU-2026-1001')->first();
                 if ($firstStudent) {
-                    $inv1 = \App\Modules\Finance\Models\Invoice::firstOrCreate(
-                        ['school_id' => $school->id, 'invoice_number' => 'INV-2026-0001'],
+                    \App\Modules\Payments\Models\Payment::firstOrCreate(
+                        ['school_id' => $school->id, 'transaction_id' => 'BKASH-9X82LA71'],
                         [
                             'academic_year_id' => $year->id,
+                            'fund_collection_name_id' => $monthlyFee->id,
                             'student_id' => $firstStudent->id,
-                            'fee_category_id' => $tuitionCategory->id,
-                            'title' => 'January 2026 Tuition Fee',
+                            'receipt_no' => 'RCP-2026-0001',
                             'amount' => 2500.00,
                             'paid_amount' => 2500.00,
                             'due_amount' => 0.00,
-                            'due_date' => '2026-01-20',
                             'status' => 'paid',
-                        ]
-                    );
-
-                    \App\Modules\Finance\Models\Payment::firstOrCreate(
-                        ['invoice_id' => $inv1->id, 'transaction_id' => 'BKASH-9X82LA71'],
-                        [
-                            'school_id' => $school->id,
-                            'amount' => 2500.00,
                             'payment_method' => 'bKash',
-                            'payment_date' => '2026-01-18 10:30:00',
+                            'payment_date' => '2026-01-18',
                             'received_by' => 'bKash Merchant Gateway',
                             'notes' => 'Received via bKash checkout',
                         ]
                     );
 
-                    \App\Modules\Finance\Models\Invoice::firstOrCreate(
-                        ['school_id' => $school->id, 'invoice_number' => 'INV-2026-0002'],
+                    \App\Modules\Payments\Models\Payment::firstOrCreate(
+                        ['school_id' => $school->id, 'receipt_no' => 'RCP-2026-0002'],
                         [
                             'academic_year_id' => $year->id,
+                            'fund_collection_name_id' => $examFee->id,
                             'student_id' => $firstStudent->id,
-                            'fee_category_id' => $examCategory->id,
-                            'title' => 'First Term Exam Registration',
                             'amount' => 1200.00,
                             'paid_amount' => 500.00,
                             'due_amount' => 700.00,
-                            'due_date' => '2026-03-10',
                             'status' => 'partially_paid',
+                            'payment_method' => 'Cash',
+                            'payment_date' => '2026-03-10',
+                            'received_by' => 'Cashier Desk',
+                            'notes' => 'Partial installment paid at counter',
                         ]
                     );
+                }
 
-                    // 7. Examination Module Seeds
-                    $exam1 = \App\Modules\Exam\Models\Exam::firstOrCreate(
+                    // 7. Examination Module Seeds (SchoolExams & SchoolExamResults)
+                    $exam1 = \App\Modules\SchoolExams\Models\Exam::firstOrCreate(
                         ['school_id' => $school->id, 'name' => 'First Term Examination 2026'],
                         [
                             'academic_year_id' => $year->id,
@@ -300,37 +316,37 @@ class DatabaseSeeder extends Seeder
 
                     $class10 = ClassLevel::where('numeric_value', 10)->first();
                     if ($class10) {
-                        $subBangla = \App\Modules\Exam\Models\Subject::firstOrCreate(
+                        $subBangla = \App\Modules\Academic\Models\Subject::firstOrCreate(
                             ['school_id' => $school->id, 'class_level_id' => $class10->id, 'name' => 'Bangla 1st Paper'],
                             ['code' => '101', 'full_mark' => 100, 'pass_mark' => 33, 'is_optional' => false, 'can_be_4th_subject' => false]
                         );
-                        $subEnglish = \App\Modules\Exam\Models\Subject::firstOrCreate(
+                        $subEnglish = \App\Modules\Academic\Models\Subject::firstOrCreate(
                             ['school_id' => $school->id, 'class_level_id' => $class10->id, 'name' => 'English 1st Paper'],
                             ['code' => '107', 'full_mark' => 100, 'pass_mark' => 33, 'is_optional' => false, 'can_be_4th_subject' => false]
                         );
-                        $subMath = \App\Modules\Exam\Models\Subject::firstOrCreate(
+                        $subMath = \App\Modules\Academic\Models\Subject::firstOrCreate(
                             ['school_id' => $school->id, 'class_level_id' => $class10->id, 'name' => 'General Mathematics'],
                             ['code' => '109', 'full_mark' => 100, 'pass_mark' => 33, 'is_optional' => false, 'can_be_4th_subject' => false]
                         );
-                        $subHMath = \App\Modules\Exam\Models\Subject::firstOrCreate(
+                        $subHMath = \App\Modules\Academic\Models\Subject::firstOrCreate(
                             ['school_id' => $school->id, 'class_level_id' => $class10->id, 'name' => 'Higher Mathematics (4th Subject)'],
                             ['code' => '126', 'full_mark' => 100, 'pass_mark' => 33, 'is_optional' => true, 'can_be_4th_subject' => true]
                         );
 
                         // Seed sample marks for Tahmid
-                        \App\Modules\Exam\Models\ExamMark::firstOrCreate(
+                        \App\Modules\SchoolExamResults\Models\ExamResult::firstOrCreate(
                             ['school_id' => $school->id, 'student_id' => $firstStudent->id, 'exam_id' => $exam1->id, 'subject_id' => $subBangla->id],
                             ['subjective_mark' => 58, 'objective_mark' => 26, 'practical_mark' => 0, 'total_mark' => 84, 'is_4th_subject' => false, 'gpa' => 5.00, 'grade' => 'A+']
                         );
-                        \App\Modules\Exam\Models\ExamMark::firstOrCreate(
+                        \App\Modules\SchoolExamResults\Models\ExamResult::firstOrCreate(
                             ['school_id' => $school->id, 'student_id' => $firstStudent->id, 'exam_id' => $exam1->id, 'subject_id' => $subEnglish->id],
                             ['subjective_mark' => 52, 'objective_mark' => 24, 'practical_mark' => 0, 'total_mark' => 76, 'is_4th_subject' => false, 'gpa' => 4.00, 'grade' => 'A']
                         );
-                        \App\Modules\Exam\Models\ExamMark::firstOrCreate(
+                        \App\Modules\SchoolExamResults\Models\ExamResult::firstOrCreate(
                             ['school_id' => $school->id, 'student_id' => $firstStudent->id, 'exam_id' => $exam1->id, 'subject_id' => $subMath->id],
                             ['subjective_mark' => 65, 'objective_mark' => 28, 'practical_mark' => 0, 'total_mark' => 93, 'is_4th_subject' => false, 'gpa' => 5.00, 'grade' => 'A+']
                         );
-                        \App\Modules\Exam\Models\ExamMark::firstOrCreate(
+                        \App\Modules\SchoolExamResults\Models\ExamResult::firstOrCreate(
                             ['school_id' => $school->id, 'student_id' => $firstStudent->id, 'exam_id' => $exam1->id, 'subject_id' => $subHMath->id],
                             ['subjective_mark' => 50, 'objective_mark' => 20, 'practical_mark' => 22, 'total_mark' => 92, 'is_4th_subject' => true, 'gpa' => 5.00, 'grade' => 'A+']
                         );

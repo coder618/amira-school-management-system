@@ -5,16 +5,15 @@ use App\Http\Controllers\DashboardController;
 use App\Modules\Academic\Controllers\SectionController;
 use App\Modules\Academic\Controllers\ShiftController;
 use App\Modules\Academic\Controllers\StudentController;
+use App\Modules\Academic\Controllers\SubjectController;
 use App\Modules\Attendance\Controllers\AttendanceController;
 use App\Modules\Core\Controllers\SchoolController;
-use App\Modules\Exam\Controllers\ExamController;
-use App\Modules\Exam\Controllers\ExamMarkController;
-use App\Modules\Exam\Controllers\SubjectController;
-use App\Modules\Finance\Controllers\FeeCategoryController;
-use App\Modules\Finance\Controllers\InvoiceController;
-use App\Modules\Finance\Controllers\PaymentController;
+use App\Modules\FundCollectionName\Controllers\FundCollectionNameController;
 use App\Modules\HR\Controllers\TeacherController;
+use App\Modules\Payments\Controllers\PaymentController;
 use App\Modules\SchoolClass\Controllers\ClassLevelController;
+use App\Modules\SchoolExamResults\Controllers\ExamResultController as SchoolExamResultController;
+use App\Modules\SchoolExams\Controllers\ExamController as SchoolExamController;
 use Illuminate\Support\Facades\Route;
 
 // Health / meta check
@@ -59,19 +58,32 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/attendances/bulk-upsert', [AttendanceController::class, 'bulkUpsert']);
     Route::get('/attendances/stats', [AttendanceController::class, 'stats']);
 
-    // 4. Finance Module APIs
-    Route::get('/invoices', [InvoiceController::class, 'index']);
-    Route::post('/invoices', [InvoiceController::class, 'store']);
-    Route::get('/invoices/{invoice}', [InvoiceController::class, 'show']);
-    Route::post('/payments', [PaymentController::class, 'store']);
-    Route::get('/fee-categories', [FeeCategoryController::class, 'index']);
+    // 4. FundCollectionName & Payments Modules (Tenant Fees & Collections)
+    Route::apiResource('fund-collection-names', FundCollectionNameController::class)->parameters(['fund-collection-names' => 'fundCollectionName']);
+    Route::get('/fee-categories', [FundCollectionNameController::class, 'index']); // backward compatibility alias
+    Route::get('/invoices', [PaymentController::class, 'index']); // backward compatibility alias
+    Route::apiResource('payments', PaymentController::class)->parameters(['payments' => 'payment']);
+    Route::post('/payments/{payment}/settle', [PaymentController::class, 'settle']);
+    Route::get('/payments-stats', [PaymentController::class, 'stats']);
 
-    // 5. Examination Module (NCTB Grading) APIs
-    Route::get('/exams', [ExamController::class, 'index']);
-    Route::post('/exams', [ExamController::class, 'store']);
+    // 5. Academic Subjects APIs
     Route::get('/subjects', [SubjectController::class, 'index']);
     Route::post('/subjects', [SubjectController::class, 'store']);
-    Route::get('/exam-marks', [ExamMarkController::class, 'index']);
-    Route::post('/exam-marks/bulk', [ExamMarkController::class, 'bulkStore']);
-    Route::get('/report-cards/{studentId}/exam/{examId}', [ExamMarkController::class, 'reportCard']);
+
+    // Legacy Aliases for Exams and Exam Marks (routing to SchoolExams & SchoolExamResults)
+    Route::get('/exams', [SchoolExamController::class, 'index']);
+    Route::post('/exams', [SchoolExamController::class, 'store']);
+    Route::get('/exam-marks', [SchoolExamResultController::class, 'index']);
+    Route::post('/exam-marks/bulk', [SchoolExamResultController::class, 'bulkStore']);
+    Route::get('/report-cards/{studentId}/exam/{examId}', [SchoolExamResultController::class, 'reportCard']);
+
+    // 6. SchoolExams Module (Tenant-scoped Exam Management)
+    Route::apiResource('school-exams', SchoolExamController::class)->parameters(['school-exams' => 'exam']);
+    Route::patch('/school-exams/{exam}/publish', [SchoolExamController::class, 'togglePublish']);
+
+    // 7. SchoolExamResults Module (Tenant-scoped Marks, Results & Tabulation)
+    Route::apiResource('school-exam-results', SchoolExamResultController::class)->parameters(['school-exam-results' => 'examResult']);
+    Route::post('/school-exam-results/bulk', [SchoolExamResultController::class, 'bulkStore']);
+    Route::get('/school-exam-results/report-card/{studentId}/exam/{examId}', [SchoolExamResultController::class, 'reportCard']);
+    Route::get('/school-exam-results/tabulation/{examId}/class/{classLevelId}', [SchoolExamResultController::class, 'tabulationSheet']);
 });

@@ -11,40 +11,73 @@ Build a School Management System for Bangladesh.
 
 # Module Relationships & Schema Requirements
 
-Create the migrations, models, API controllers, and React CRUD interfaces for the following 6 modules:
+The architecture follows a strict Domain-Driven modular structure in `app/Modules`, where every tenant entity inherits `BelongsToTenant` (`school_id` and `academic_year_id`):
 
 ### 1. Core Module (Tenant & Auth)
+*   **Location:** `app/Modules/Core`
 *   **Entities:** `School` (or Branch), `User`, `AcademicYear`.
-*   **Logic:** Every entity in the system must belong to a `school_id` and an `academic_year_id` to allow multi-tenant isolation.
+*   **Logic:** Every entity belongs to a `school_id` and an `academic_year_id` for multi-tenant isolation.
 *   **Roles:** SuperAdmin, Admin, Teacher, Student/Parent.
 
-### 2. Academic Module (SIS)
-*   **Entities:** `ClassLevel` (e.g., Class 6, Class 7), `Section`, `Shift` (Morning/Day), `Student`.
+### 2. Academic Module (SIS & Curriculum)
+*   **Location:** `app/Modules/Academic`
+*   **Entities:** `ClassLevel`, `Section`, `Shift` (Morning/Day), `Student`, `Subject`.
 *   **Relationships:** 
-    *   `Student` belongsTo `ClassLevel`, `Section`, `Shift`.
-    *   `Student` must have fields for: `roll_number`, `student_id` (unique string), `father_name`, `mother_name`, `phone_number` (11 digits, regex: `^01[3-9]\d{8}$`).
+    *   `Student` belongsTo `ClassLevel`, `Section`, `Shift`, `User`.
+    *   `Student` has: `roll_number`, `student_id` (unique string), `father_name`, `mother_name`, `phone_number` (11 digits, regex: `^01[3-9]\d{8}$`), `status`.
+    *   `Subject` belongsTo `ClassLevel` and has: `name`, `code`, `full_mark`, `pass_mark`, `is_optional`, `can_be_4th_subject`.
 
-### 3. HR Module (Teachers)
+### 3. SchoolClass Module
+*   **Location:** `app/Modules/SchoolClass`
+*   **Entities:** `ClassLevel`.
+*   **Logic:** Dedicated management for tenant-specific class levels, sections relationship, enrollment counts, and cascading validation.
+
+### 4. HR Module (Teachers)
+*   **Location:** `app/Modules/HR`
 *   **Entities:** `Teacher`.
-*   **Relationships:** `Teacher` belongsTo `User`. A `Section` can have one `Teacher` as a `class_teacher_id`.
+*   **Relationships:** `Teacher` belongsTo `User`. A `Section` can have one `Teacher` as `class_teacher_id`.
 
-### 4. Attendance Module
+### 5. Attendance Module
+*   **Location:** `app/Modules/Attendance`
 *   **Entities:** `Attendance` (student_id, date, status: Present/Absent/Late).
 *   **Logic:** 
-    *   Create a bulk-upsert endpoint for fast submission by teachers.
-    *   Implement an Event/Listener structure (`AttendanceMarked`) that triggers an SMS job for students marked "Absent". Scaffold a dummy SMS Gateway service class that we can later connect to BulkSMSBD or SSL Wireless.
+    *   Bulk-upsert endpoint for rapid submission by teachers.
+    *   Event/Listener structure (`AttendanceMarked`) triggering absent SMS notifications via `SmsGatewayService`.
 
-### 5. Finance Module
-*   **Entities:** `FeeCategory` (Tuition, Exam, Admission), `Invoice`, `Payment`.
-*   **Relationships:** `Invoice` belongsTo `Student`. `Payment` belongsTo `Invoice`.
-*   **Logic:** `Payment` must include `payment_method` (Cash, bKash, Nagad) and a nullable `transaction_id`.
+### 6. FundCollectionName Module (Fee Categories & Collection Heads)
+*   **Location:** `app/Modules/FundCollectionName`
+*   **Entities:** `FundCollectionName` (name, interval: Monthly/Quarterly/6 Months/Yearly/One-Time, default_amount, description, is_active).
+*   **Logic:**
+    *   Managed by school admin to define collections (Monthly tuition, library fee, admission fee, laboratory fee, session fee).
+    *   Interval flexibility: supports Monthly, Quarterly, 6 Months (Half-Yearly), Yearly, One-Time.
+    *   Unique per tenant: `['school_id', 'name']`.
+    *   Protected deletion: cannot delete collection name if payment records are attached.
 
-### 6. Examination Module (NCTB Grading)
-*   **Entities:** `Exam`, `Subject`, `ExamMark` (student_id, exam_id, subject_id, subjective_mark, objective_mark, total_mark, is_4th_subject).
-*   **Logic:** Implement a strict Service Class `NctbGradingService` to calculate GPA based on Bangladesh rules:
-    *   80-100 = A+ (5.00), 70-79 = A (4.00), 60-69 = A- (3.50), 50-59 = B (3.00), 40-49 = C (2.00), 33-39 = D (1.00), 0-32 = F (0.00).
-    *   4th Subject Rule: If `is_4th_subject` is true, subtract 2.00 from the subject's GPA. Add the remainder (if > 0) to the total grade points. Maximum final GPA cannot exceed 5.00.
-    *   If any main subject is F (0.00), the final GPA is 0.00 (Failed).
+### 7. Payments Module (Tenant Collections & Student Billing)
+*   **Location:** `app/Modules/Payments`
+*   **Entities:** `Payment` (student_id, fund_collection_name_id, receipt_no, amount, paid_amount, due_amount, status: paid/due/partially_paid/cancelled, payment_method: Cash/bKash/Nagad/Bank/Rocket, transaction_id, payment_date, due_date, received_by, notes).
+*   **Logic:**
+    *   Must strictly belong to a specific `FundCollectionName` entity.
+    *   Automated status calculation: `paid` (full settlement), `partially_paid` (installments), `due` (unpaid).
+    *   Settle endpoint (`/api/payments/{id}/settle`) for paying remaining dues.
+    *   Multi-tenant isolated per school (`school_id`).
+
+### 8. SchoolExams Module (Tenant Exams)
+*   **Location:** `app/Modules/SchoolExams`
+*   **Entities:** `Exam` (name, term, start_date, end_date, is_published).
+*   **Logic:** 
+    *   Multi-tenant exam lifecycle management (CRUD, publication toggling).
+    *   Exam name unique per tenant school & academic year (`['school_id', 'academic_year_id', 'name']`).
+    *   Protected deletion: cannot delete an exam with active student marks.
+
+### 9. SchoolExamResults Module (NCTB Grading & Tabulation)
+*   **Location:** `app/Modules/SchoolExamResults`
+*   **Entities:** `ExamResult` (student_id, exam_id, subject_id, subjective_mark, objective_mark, practical_mark, total_mark, is_4th_subject, gpa, grade).
+*   **Logic:**
+    *   `NctbGradingService`: Standard Bangladesh grading scale (A+ to F, 80-100 = 5.00, etc.).
+    *   4th Subject Rule: Subtract 2.00 from 4th subject GPA; positive remainder added as bonus to total grade points. Final GPA capped at 5.00 max.
+    *   Fail Rule: If any main subject is F (0.00), composite GPA is 0.00 (Failed).
+    *   Features: Individual mark entry, rapid bulk marks recording, official NCTB Student Report Cards, and full class Tabulation Sheets with automated merit rank ordering.
 
 # Execution Steps for Antigravity
 1. Scaffold the backend directory structure (`app/Modules/`).

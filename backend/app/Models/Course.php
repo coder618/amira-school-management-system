@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Modules\Exam\Models\Subject;
+use App\Modules\Academic\Models\Subject;
 
 class Course extends Subject
 {

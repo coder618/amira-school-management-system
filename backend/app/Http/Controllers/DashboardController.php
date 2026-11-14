@@ -3,9 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Modules\Academic\Models\Student;
+use App\Modules\Academic\Models\Subject;
 use App\Modules\Attendance\Models\Attendance;
 use App\Modules\Core\Models\User;
-use App\Modules\Exam\Models\Subject;
 use App\Modules\HR\Models\Teacher;
 use Illuminate\Http\JsonResponse;
 

@@ -15,6 +15,7 @@ import {
   Plus,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { SchoolExamsAndResultsSection } from '../components/dashboard/SchoolExamsAndResultsSection';
 
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -168,6 +169,9 @@ export const Dashboard: React.FC = () => {
           <p className="mt-1 text-xs text-slate-500">Certified educators</p>
         </div>
       </div>
+
+      {/* SchoolExams & SchoolExamResults Interactive Management Section */}
+      <SchoolExamsAndResultsSection />
 
       {/* Lower Section: Recent Activity + Architecture Overview */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
