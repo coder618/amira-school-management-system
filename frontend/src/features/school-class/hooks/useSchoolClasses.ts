@@ -13,9 +13,20 @@ export const useSchoolClasses = () => {
     setError(null);
     try {
       const data = await schoolClassApi.getClasses();
-      setClasses(data);
-    } catch {
-      setError('Could not retrieve school classes roster.');
+      const list = Array.isArray(data) ? data : ((data as unknown as { data: ClassLevel[] })?.data ?? []);
+      setClasses(list);
+    } catch (err: unknown) {
+      console.error('Error fetching class roster:', err);
+      let message = 'Could not retrieve school classes roster.';
+      if (err && typeof err === 'object' && 'response' in err) {
+        const ax = err as { response?: { status?: number; data?: { message?: string } } };
+        if (ax.response?.status === 401) {
+          message = 'Authentication required. Please log in again.';
+        } else if (ax.response?.data?.message) {
+          message = ax.response.data.message;
+        }
+      }
+      setError(message);
     } finally {
       setLoading(false);
     }

@@ -17,6 +17,7 @@ class StoreClassLevelRequest extends FormRequest
     {
         $schoolId = auth()->user()?->school_id
             ?? ($this->header('X-School-Id') ? (int) $this->header('X-School-Id') : null)
+            ?? $this->input('school_id')
             ?? School::first()?->id;
 
         return [
@@ -30,6 +31,8 @@ class StoreClassLevelRequest extends FormRequest
             ],
             'numeric_value' => 'nullable|integer|min:0|max:100',
             'code' => 'nullable|string|max:20',
+            'school_id' => 'nullable|integer|exists:schools,id',
+            'academic_year_id' => 'nullable|integer|exists:academic_years,id',
         ];
     }
 

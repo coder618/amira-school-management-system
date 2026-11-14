@@ -157,5 +157,28 @@ class ClassLevelTest extends TestCase
             ->deleteJson("/api/class-levels/{$classId}");
         $deleteRes->assertStatus(200);
     }
+
+    public function test_classes_remain_accessible_even_if_academic_year_header_varies(): void
+    {
+        ClassLevel::create([
+            'school_id' => $this->school->id,
+            'academic_year_id' => $this->year->id,
+            'name' => 'Class 9',
+            'numeric_value' => 9,
+        ]);
+
+        // Accessing without academic year header
+        $res1 = $this->actingAs($this->user, 'sanctum')
+            ->getJson('/api/class-levels');
+        $res1->assertStatus(200);
+        $res1->assertJsonFragment(['name' => 'Class 9']);
+
+        // Accessing with a different or subsequent academic year header
+        $res2 = $this->actingAs($this->user, 'sanctum')
+            ->withHeaders(['X-Academic-Year-Id' => '999'])
+            ->getJson('/api/class-levels');
+        $res2->assertStatus(200);
+        $res2->assertJsonFragment(['name' => 'Class 9']);
+    }
 }
 

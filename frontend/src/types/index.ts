@@ -5,6 +5,8 @@ export interface User {
   email: string;
   role?: string;
   phone_number?: string;
+  profile_picture?: string | null;
+  profile_picture_url?: string | null;
   is_active?: boolean;
   created_at?: string;
   updated_at?: string;

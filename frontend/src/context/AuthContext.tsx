@@ -11,6 +11,9 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string, password_confirmation: string) => Promise<void>;
   logout: () => Promise<void>;
+  updateUser: (updatedUser: User) => void;
+  uploadProfilePicture: (file: File) => Promise<User>;
+  removeProfilePicture: () => Promise<User>;
   setUser: React.Dispatch<React.SetStateAction<User | null>>;
 }
 
@@ -100,6 +103,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const updateUser = (updatedUser: User) => {
+    setUser(updatedUser);
+    localStorage.setItem(APP_CONFIG.STORAGE_KEYS.USER, JSON.stringify(updatedUser));
+    localStorage.setItem('user', JSON.stringify(updatedUser));
+  };
+
+  const uploadProfilePicture = async (file: File): Promise<User> => {
+    const res = await authApi.uploadProfilePicture(file);
+    updateUser(res.user);
+    return res.user;
+  };
+
+  const removeProfilePicture = async (): Promise<User> => {
+    const res = await authApi.deleteProfilePicture();
+    updateUser(res.user);
+    return res.user;
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -110,6 +131,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         register,
         logout,
+        updateUser,
+        uploadProfilePicture,
+        removeProfilePicture,
         setUser,
       }}
     >

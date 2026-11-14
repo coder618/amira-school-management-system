@@ -15,7 +15,11 @@ apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
     localStorage.getItem(APP_CONFIG.STORAGE_KEYS.AUTH_TOKEN) ||
     localStorage.getItem('token');
   if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+    if (config.headers && typeof config.headers.set === 'function') {
+      config.headers.set('Authorization', `Bearer ${token}`);
+    } else {
+      config.headers['Authorization'] = `Bearer ${token}`;
+    }
   }
 
   let schoolId = localStorage.getItem(APP_CONFIG.STORAGE_KEYS.TENANT_SCHOOL);
@@ -37,12 +41,20 @@ apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   }
 
   if (schoolId) {
-    config.headers['X-School-Id'] = schoolId;
+    if (config.headers && typeof config.headers.set === 'function') {
+      config.headers.set('X-School-Id', schoolId);
+    } else {
+      config.headers['X-School-Id'] = schoolId;
+    }
   }
 
   const academicYearId = localStorage.getItem(APP_CONFIG.STORAGE_KEYS.TENANT_YEAR);
   if (academicYearId) {
-    config.headers['X-Academic-Year-Id'] = academicYearId;
+    if (config.headers && typeof config.headers.set === 'function') {
+      config.headers.set('X-Academic-Year-Id', academicYearId);
+    } else {
+      config.headers['X-Academic-Year-Id'] = academicYearId;
+    }
   }
 
   return config;
@@ -57,6 +69,9 @@ apiClient.interceptors.response.use(
       localStorage.removeItem(APP_CONFIG.STORAGE_KEYS.USER);
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+      if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

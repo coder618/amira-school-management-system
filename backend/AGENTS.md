@@ -79,6 +79,15 @@ The architecture follows a strict Domain-Driven modular structure in `app/Module
     *   Fail Rule: If any main subject is F (0.00), composite GPA is 0.00 (Failed).
     *   Features: Individual mark entry, rapid bulk marks recording, official NCTB Student Report Cards, and full class Tabulation Sheets with automated merit rank ordering.
 
+### 10. Notification Module (User-Pointed Notifications)
+*   **Location:** `app/Modules/Notification`
+*   **Entities:** `Notification` (`user_notifications` table with user_id, school_id, title, message, type, data, read_at, deleted_at).
+*   **Logic:**
+    *   Pointed directly to `User` for personal, role-based, or institutional alerts.
+    *   User actions: View notifications, mark as read / unread, mark all as read.
+    *   Soft deletes: User can soft delete their own notifications into trash, view archived, restore, or empty trash.
+    *   Strict ownership authorization: A user can only inspect, read, unread, or soft delete notifications belonging to their own `user_id`.
+
 # Execution Steps for Antigravity
 1. Scaffold the backend directory structure (`app/Modules/`).
 2. Generate all Laravel Migrations in proper dependency order (Core -> Academic -> HR -> Attendance -> Finance -> Exam).

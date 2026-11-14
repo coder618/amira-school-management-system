@@ -353,6 +353,50 @@ class DatabaseSeeder extends Seeder
                     }
                 }
             }
+
+        // 9. Seed Sample User Notifications
+        $adminUser = User::where('email', 'admin@school.com')->first();
+        if ($adminUser) {
+            \App\Modules\Notification\Models\Notification::firstOrCreate(
+                ['user_id' => $adminUser->id, 'title' => 'Term Final Examination Schedule Published'],
+                [
+                    'school_id' => $school->id,
+                    'message' => 'The First Term Final Examination 2026 timetable has been reviewed and published for Class 6-10.',
+                    'type' => 'exam',
+                    'data' => ['link' => '/exams'],
+                    'read_at' => null,
+                ]
+            );
+            \App\Modules\Notification\Models\Notification::firstOrCreate(
+                ['user_id' => $adminUser->id, 'title' => 'Monthly Tuition Fee Collections Generated'],
+                [
+                    'school_id' => $school->id,
+                    'message' => 'Monthly school tuition and laboratory fee demands for November have been automatically queued.',
+                    'type' => 'finance',
+                    'data' => ['link' => '/finance'],
+                    'read_at' => null,
+                ]
+            );
+            \App\Modules\Notification\Models\Notification::firstOrCreate(
+                ['user_id' => $adminUser->id, 'title' => 'Daily Attendance Summary Logged'],
+                [
+                    'school_id' => $school->id,
+                    'message' => 'Morning shift student attendance submission completed with 98.4% attendance rate.',
+                    'type' => 'attendance',
+                    'data' => ['link' => '/attendance'],
+                    'read_at' => now(),
+                ]
+            );
+            \App\Modules\Notification\Models\Notification::firstOrCreate(
+                ['user_id' => $adminUser->id, 'title' => 'Curriculum Syllabus Update'],
+                [
+                    'school_id' => $school->id,
+                    'message' => 'National Curriculum and Textbook Board (NCTB) 2026 science textbook guidelines updated.',
+                    'type' => 'info',
+                    'data' => ['link' => '/classes'],
+                    'read_at' => null,
+                ]
+            );
         }
     }
 }

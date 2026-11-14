@@ -31,6 +31,8 @@ export interface User extends BaseEntity {
   email: string;
   role: UserRole;
   phone_number?: string;
+  profile_picture?: string | null;
+  profile_picture_url?: string | null;
   is_active: boolean;
   school?: School;
 }

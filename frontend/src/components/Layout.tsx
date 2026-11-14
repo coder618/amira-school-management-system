@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { NotificationDropdown } from '../features/notification';
+import { UserProfileDropdown } from './UserProfileDropdown';
 import {
   LayoutDashboard,
   GraduationCap,
@@ -11,24 +13,16 @@ import {
   Award,
   Settings,
   ShieldCheck,
-  LogOut,
   Menu,
   X,
   Bell,
   Search,
   School,
-  User as UserIcon,
 } from 'lucide-react';
 
 export const Layout: React.FC = () => {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
+  const { user } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  const handleLogout = async () => {
-    await logout();
-    navigate('/login');
-  };
 
   const navItems = [
     ...(user?.role === 'SuperAdmin'
@@ -41,6 +35,7 @@ export const Layout: React.FC = () => {
     { label: 'Attendance', path: '/attendance', icon: CalendarCheck },
     { label: 'Finance & Fees', path: '/finance', icon: CreditCard },
     { label: 'Exams & GPA', path: '/exams', icon: Award },
+    { label: 'Notifications', path: '/notifications', icon: Bell },
     { label: 'Settings', path: '/settings', icon: Settings },
   ];
 
@@ -106,27 +101,6 @@ export const Layout: React.FC = () => {
             );
           })}
         </nav>
-
-        {/* User Card & Logout */}
-        <div className="p-4 border-t border-slate-800">
-          <div className="flex items-center gap-3 mb-3 px-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-800 text-slate-300 border border-slate-700">
-              <UserIcon className="h-5 w-5" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-white truncate">{user?.name || 'Administrator'}</p>
-              <p className="text-xs text-slate-400 truncate">{user?.role || 'Admin'} - {user?.email}</p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 rounded-lg bg-slate-800 px-3 py-2 text-sm font-medium text-rose-300 hover:bg-rose-950/40 hover:text-rose-200 transition-colors border border-slate-700/60"
-          >
-            <LogOut className="h-4 w-4" />
-            <span>Sign Out</span>
-          </button>
-        </div>
       </aside>
 
       {/* Main Content Area */}
@@ -156,13 +130,8 @@ export const Layout: React.FC = () => {
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
               Tenant: Dhaka Ideal High School
             </span>
-            <button
-              type="button"
-              className="relative rounded-lg p-2 text-slate-500 hover:bg-slate-100 transition-colors"
-            >
-              <Bell className="h-5 w-5" />
-              <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-indigo-600"></span>
-            </button>
+            <NotificationDropdown />
+            <UserProfileDropdown />
           </div>
         </header>
 

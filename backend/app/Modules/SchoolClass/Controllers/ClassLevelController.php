@@ -9,18 +9,27 @@ use App\Modules\SchoolClass\Models\ClassLevel;
 use App\Modules\SchoolClass\Requests\StoreClassLevelRequest;
 use App\Modules\SchoolClass\Requests\UpdateClassLevelRequest;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class ClassLevelController extends Controller
 {
     /**
      * List all class levels for the current school tenant.
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $classes = ClassLevel::with(['sections.classTeacher.user'])
-            ->withCount(['students', 'sections'])
-            ->forTenant()
-            ->orderBy('numeric_value', 'asc')
+        $schoolId = auth()->user()?->school_id
+            ?? ($request->header('X-School-Id') ? (int) $request->header('X-School-Id') : null)
+            ?? School::first()?->id;
+
+        $query = ClassLevel::with(['sections.classTeacher.user'])
+            ->withCount(['students', 'sections']);
+
+        if ($schoolId) {
+            $query->where('school_id', $schoolId);
+        }
+
+        $classes = $query->orderBy('numeric_value', 'asc')
             ->orderBy('id', 'asc')
             ->get();
 
@@ -36,13 +45,14 @@ class ClassLevelController extends Controller
 
         $schoolId = auth()->user()?->school_id
             ?? ($request->header('X-School-Id') ? (int) $request->header('X-School-Id') : null)
+            ?? $request->input('school_id')
             ?? School::first()?->id;
 
         $validated['school_id'] = $schoolId;
 
         // Ensure academic_year_id is associated
         if (empty($validated['academic_year_id'])) {
-            $academicYearId = (int) $request->header('X-Academic-Year-Id');
+            $academicYearId = (int) $request->header('X-Academic-Year-Id') ?: (int) $request->input('academic_year_id');
             if (! $academicYearId) {
                 $currentYear = AcademicYear::where('school_id', $schoolId)->where('is_current', true)->first()
                     ?? AcademicYear::where('school_id', $schoolId)->first();
@@ -52,7 +62,7 @@ class ClassLevelController extends Controller
         }
 
         $class = ClassLevel::create($validated);
-        $class->load('sections');
+        $class->load(['sections.classTeacher.user']);
         $class->loadCount(['students', 'sections']);
 
         return response()->json($class, 201);

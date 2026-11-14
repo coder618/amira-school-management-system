@@ -3,9 +3,11 @@
 namespace App\Modules\Core\Models;
 
 use App\Modules\Core\Enums\Role;
+use App\Modules\Notification\Models\Notification;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -23,12 +25,17 @@ class User extends Authenticatable
         'password',
         'role',
         'phone_number',
+        'profile_picture',
         'is_active',
     ];
 
     protected $hidden = [
         'password',
         'remember_token',
+    ];
+
+    protected $appends = [
+        'profile_picture_url',
     ];
 
     protected function casts(): array
@@ -41,11 +48,35 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the full URL to the user profile picture.
+     */
+    public function getProfilePictureUrlAttribute(): ?string
+    {
+        if (empty($this->profile_picture)) {
+            return null;
+        }
+
+        if (str_starts_with($this->profile_picture, 'http://') || str_starts_with($this->profile_picture, 'https://') || str_starts_with($this->profile_picture, 'data:')) {
+            return $this->profile_picture;
+        }
+
+        return url('storage/' . ltrim(preg_replace('#^/?storage/#', '', $this->profile_picture), '/'));
+    }
+
+    /**
      * School / Tenant relationship.
      */
     public function school(): BelongsTo
     {
         return $this->belongsTo(School::class);
+    }
+
+    /**
+     * User's notifications (Soft-deletable personal notifications).
+     */
+    public function appNotifications(): HasMany
+    {
+        return $this->hasMany(Notification::class);
     }
 
     /**

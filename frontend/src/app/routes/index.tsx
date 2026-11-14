@@ -26,6 +26,7 @@ export const ROUTES = {
     REPORT_CARDS: '/exams/report-cards',
     SCHEDULE: '/exams/schedule',
   },
+  NOTIFICATIONS: '/notifications',
   SETTINGS: '/settings',
 } as const;
 

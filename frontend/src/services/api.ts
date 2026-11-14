@@ -56,6 +56,28 @@ export const authApi = {
     const res = await apiClient.get<{ user: User }>('/user');
     return res.data;
   },
+  uploadProfilePicture: async (file: File): Promise<{ message: string; user: User; profile_picture_url: string }> => {
+    const formData = new FormData();
+    formData.append('profile_picture', file);
+    const res = await apiClient.post<{ message: string; user: User; profile_picture_url: string }>(
+      '/user/profile-picture',
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    );
+    return res.data;
+  },
+  deleteProfilePicture: async (): Promise<{ message: string; user: User }> => {
+    const res = await apiClient.delete<{ message: string; user: User }>('/user/profile-picture');
+    return res.data;
+  },
+  updateProfile: async (data: { name?: string; phone_number?: string }): Promise<{ message: string; user: User }> => {
+    const res = await apiClient.put<{ message: string; user: User }>('/user/profile', data);
+    return res.data;
+  },
 };
 
 export const dashboardApi = {

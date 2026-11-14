@@ -77,8 +77,22 @@ export const ClassManagementModal: React.FC<ClassManagementModalProps> = ({
       }
     } catch (err: unknown) {
       if (err && typeof err === 'object' && 'response' in err) {
-        const ax = err as { response?: { data?: { message?: string } } };
-        setError(ax.response?.data?.message || 'Failed to create class level.');
+        const ax = err as {
+          response?: {
+            status?: number;
+            data?: { message?: string; errors?: Record<string, string[]> };
+          };
+        };
+        const resData = ax.response?.data;
+        let msg = resData?.message;
+        if (resData?.errors) {
+          const firstErr = Object.values(resData.errors).flat()[0];
+          if (firstErr) msg = firstErr;
+        }
+        if (ax.response?.status === 401) {
+          msg = 'Session expired. Please log in again.';
+        }
+        setError(msg || 'Failed to create class level.');
       } else {
         setError('Network error creating class level.');
       }
@@ -119,8 +133,19 @@ export const ClassManagementModal: React.FC<ClassManagementModalProps> = ({
       cancelEdit();
     } catch (err: unknown) {
       if (err && typeof err === 'object' && 'response' in err) {
-        const ax = err as { response?: { data?: { message?: string } } };
-        setError(ax.response?.data?.message || 'Failed to update class.');
+        const ax = err as {
+          response?: {
+            status?: number;
+            data?: { message?: string; errors?: Record<string, string[]> };
+          };
+        };
+        const resData = ax.response?.data;
+        let msg = resData?.message;
+        if (resData?.errors) {
+          const firstErr = Object.values(resData.errors).flat()[0];
+          if (firstErr) msg = firstErr;
+        }
+        setError(msg || 'Failed to update class.');
       } else {
         setError('Network error updating class.');
       }

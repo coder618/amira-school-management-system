@@ -14,6 +14,7 @@ import { Finance } from './pages/Finance';
 import { Examinations } from './pages/Examinations';
 import { SuperAdmin } from './pages/SuperAdmin';
 import { Settings } from './pages/Settings';
+import { Notifications } from './pages/Notifications';
 
 export const App: React.FC = () => {
   return (
@@ -34,6 +35,7 @@ export const App: React.FC = () => {
               <Route path="/attendance" element={<Attendance />} />
               <Route path="/finance" element={<Finance />} />
               <Route path="/exams" element={<Examinations />} />
+              <Route path="/notifications" element={<Notifications />} />
               <Route path="/super-admin" element={<SuperAdmin />} />
               <Route path="/settings" element={<Settings />} />
             </Route>
