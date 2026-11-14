@@ -7,6 +7,8 @@ export const ROUTES = {
   ACADEMIC: {
     STUDENTS: '/students',
     CLASS_LEVELS: '/classes',
+    CLASSES_MANAGE: '/classes/manage',
+    CLASS_SUBJECTS: '/classes/subjects',
     SECTIONS: '/sections',
   },
   HR: {
@@ -24,6 +26,10 @@ export const ROUTES = {
     FEE_CATEGORIES: '/finance/fund-collections',
   },
   EXAMINATION: {
+    ROOT: '/exams',
+    MANAGE_EXAMS: '/exams/manage',
+    EXAM_MARKS: '/exams/marks',
+    EXAM_RESULTS: '/exams/results',
     MARKS_ENTRY: '/exams/marks-entry',
     REPORT_CARDS: '/exams/report-cards',
     SCHEDULE: '/exams/schedule',

@@ -231,6 +231,72 @@ class ExamResultController extends Controller
     }
 
     /**
+     * Store or update a full composite result for a student in an exam across multiple subjects.
+     */
+    public function saveStudentResult(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'student_id' => 'required|exists:students,id',
+            'exam_id' => 'required|exists:exams,id',
+            'marks' => 'required|array',
+            'marks.*.subject_id' => 'required|exists:subjects,id',
+            'marks.*.subjective_mark' => 'required|numeric|min:0|max:100',
+            'marks.*.objective_mark' => 'required|numeric|min:0|max:100',
+            'marks.*.practical_mark' => 'nullable|numeric|min:0|max:100',
+            'marks.*.is_4th_subject' => 'nullable|boolean',
+        ]);
+
+        $studentId = (int) $validated['student_id'];
+        $examId = (int) $validated['exam_id'];
+
+        $student = Student::findOrFail($studentId);
+        $exam = Exam::findOrFail($examId);
+
+        $schoolId = auth()->user()?->school_id
+            ?? ($request->header('X-School-Id') ? (int) $request->header('X-School-Id') : null)
+            ?? $student->school_id;
+
+        $academicYearId = (int) $request->header('X-Academic-Year-Id');
+        if (! $academicYearId && $schoolId) {
+            $currentYear = AcademicYear::where('school_id', $schoolId)->where('is_current', true)->first()
+                ?? AcademicYear::where('school_id', $schoolId)->first();
+            $academicYearId = $currentYear?->id ?? AcademicYear::first()?->id;
+        }
+
+        DB::transaction(function () use ($validated, $studentId, $examId, $schoolId, $academicYearId) {
+            foreach ($validated['marks'] as $row) {
+                $subMark = (float) $row['subjective_mark'];
+                $objMark = (float) $row['objective_mark'];
+                $pracMark = (float) ($row['practical_mark'] ?? 0);
+                $totalMark = $subMark + $objMark + $pracMark;
+
+                $gradeData = $this->gradingService->calculateSubjectGrade($totalMark);
+
+                ExamResult::updateOrCreate(
+                    [
+                        'school_id' => $schoolId,
+                        'academic_year_id' => $academicYearId,
+                        'student_id' => $studentId,
+                        'exam_id' => $examId,
+                        'subject_id' => $row['subject_id'],
+                    ],
+                    [
+                        'subjective_mark' => $subMark,
+                        'objective_mark' => $objMark,
+                        'practical_mark' => $pracMark,
+                        'total_mark' => $totalMark,
+                        'is_4th_subject' => (bool) ($row['is_4th_subject'] ?? false),
+                        'gpa' => $gradeData['gpa'],
+                        'grade' => $gradeData['grade'],
+                    ]
+                );
+            }
+        });
+
+        return $this->reportCard($request, $studentId, $examId);
+    }
+
+    /**
      * Generate official NCTB Report Card / Tabulation result for a student in an exam.
      */
     public function reportCard(Request $request, int $studentId, int $examId): JsonResponse

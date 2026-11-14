@@ -474,4 +474,55 @@ class SchoolExamsAndResultsTest extends TestCase
         $response->assertJsonPath('tabulation.0.rank', 1);
         $response->assertJsonPath('tabulation.0.final_gpa', 5);
     }
+
+    public function test_tenant_can_save_combined_student_result_across_multiple_subjects(): void
+    {
+        $exam = Exam::create([
+            'school_id' => $this->schoolA->id,
+            'academic_year_id' => $this->yearA->id,
+            'name' => 'Annual Test 2026',
+            'term' => 'Annual',
+            'is_published' => false,
+        ]);
+
+        $response = $this->actingAs($this->adminA)
+            ->withHeaders(['X-School-Id' => $this->schoolA->id])
+            ->postJson('/api/school-exam-results/student-result', [
+                'student_id' => $this->studentA->id,
+                'exam_id' => $exam->id,
+                'marks' => [
+                    [
+                        'subject_id' => $this->mathA->id,
+                        'subjective_mark' => 50,
+                        'objective_mark' => 30,
+                        'practical_mark' => 0,
+                        'is_4th_subject' => false,
+                    ],
+                    [
+                        'subject_id' => $this->bioA->id,
+                        'subjective_mark' => 50,
+                        'objective_mark' => 30,
+                        'practical_mark' => 0,
+                        'is_4th_subject' => true,
+                    ],
+                ],
+            ]);
+
+        $response->assertOk()
+            ->assertJsonPath('student.id', $this->studentA->id)
+            ->assertJsonPath('passed', true);
+
+        $this->assertDatabaseHas('exam_marks', [
+            'exam_id' => $exam->id,
+            'student_id' => $this->studentA->id,
+            'subject_id' => $this->mathA->id,
+            'total_mark' => 80,
+        ]);
+        $this->assertDatabaseHas('exam_marks', [
+            'exam_id' => $exam->id,
+            'student_id' => $this->studentA->id,
+            'subject_id' => $this->bioA->id,
+            'total_mark' => 80,
+        ]);
+    }
 }

@@ -1,11 +1,9 @@
 import React from 'react';
-import { MarksEntrySheet } from '../features/examination';
+import { Navigate } from 'react-router-dom';
 
 export const Examinations: React.FC = () => {
-  return (
-    <div className="py-2">
-      <MarksEntrySheet />
-    </div>
-  );
+  return <Navigate to="/exams/manage" replace />;
 };
+
+export default Examinations;
 

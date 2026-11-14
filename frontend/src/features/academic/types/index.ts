@@ -64,3 +64,26 @@ export interface StudentFilterParams {
   page?: number;
 }
 
+export interface Subject extends TenantEntity {
+  class_level_id: number;
+  name: string;
+  code?: string | null;
+  full_mark: number;
+  pass_mark: number;
+  is_optional: boolean;
+  can_be_4th_subject: boolean;
+  class_level?: ClassLevel;
+  results_count?: number;
+}
+
+export interface SubjectPayload {
+  class_level_id: number;
+  name: string;
+  code?: string;
+  full_mark?: number;
+  pass_mark?: number;
+  is_optional?: boolean;
+  can_be_4th_subject?: boolean;
+}
+
+

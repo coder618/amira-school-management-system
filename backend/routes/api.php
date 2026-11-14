@@ -78,8 +78,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('invoices', InvoiceController::class)->parameters(['invoices' => 'invoice']);
 
     // 5. Academic Subjects APIs
-    Route::get('/subjects', [SubjectController::class, 'index']);
-    Route::post('/subjects', [SubjectController::class, 'store']);
+    Route::apiResource('subjects', SubjectController::class)->parameters(['subjects' => 'subject']);
 
     // Legacy Aliases for Exams and Exam Marks (routing to SchoolExams & SchoolExamResults)
     Route::get('/exams', [SchoolExamController::class, 'index']);
@@ -93,6 +92,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/school-exams/{exam}/publish', [SchoolExamController::class, 'togglePublish']);
 
     // 7. SchoolExamResults Module (Tenant-scoped Marks, Results & Tabulation)
+    Route::post('/school-exam-results/student-result', [SchoolExamResultController::class, 'saveStudentResult']);
     Route::apiResource('school-exam-results', SchoolExamResultController::class)->parameters(['school-exam-results' => 'examResult']);
     Route::post('/school-exam-results/bulk', [SchoolExamResultController::class, 'bulkStore']);
     Route::get('/school-exam-results/report-card/{studentId}/exam/{examId}', [SchoolExamResultController::class, 'reportCard']);

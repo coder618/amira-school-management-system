@@ -6,6 +6,8 @@ import {
   ClassLevelPayload,
   Section,
   Shift,
+  Subject,
+  SubjectPayload,
 } from '../types';
 
 export const academicApi = {
@@ -64,6 +66,27 @@ export const academicApi = {
 
   getShifts: async (): Promise<Shift[]> => {
     const res = await apiClient.get<Shift[]>('/shifts');
+    return res.data;
+  },
+
+  // Subjects (Tenant-scoped CRUD)
+  getSubjects: async (params?: { class_level_id?: number; search?: string; is_optional?: boolean; can_be_4th_subject?: boolean }): Promise<Subject[]> => {
+    const res = await apiClient.get<Subject[]>('/subjects', { params });
+    return res.data;
+  },
+
+  createSubject: async (payload: SubjectPayload): Promise<Subject> => {
+    const res = await apiClient.post<Subject>('/subjects', payload);
+    return res.data;
+  },
+
+  updateSubject: async (id: number, payload: Partial<SubjectPayload>): Promise<Subject> => {
+    const res = await apiClient.put<Subject>(`/subjects/${id}`, payload);
+    return res.data;
+  },
+
+  deleteSubject: async (id: number): Promise<{ message: string }> => {
+    const res = await apiClient.delete<{ message: string }>(`/subjects/${id}`);
     return res.data;
   },
 };

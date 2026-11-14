@@ -91,11 +91,19 @@ export interface SchoolExamResult {
     last_name: string;
     roll_number: number;
     student_id: string;
+    class_level?: { id: number; name: string };
+    section?: { id: number; name: string };
   };
   subject?: {
     id: number;
     name: string;
     code?: string;
+  };
+  exam?: {
+    id: number;
+    name: string;
+    term: string;
+    is_published?: boolean;
   };
 }
 

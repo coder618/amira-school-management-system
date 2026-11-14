@@ -121,6 +121,45 @@ export const coursesApi = {
   },
 };
 
+export const subjectsApi = {
+  getAll: async (params?: { class_level_id?: number; search?: string; is_optional?: boolean; can_be_4th_subject?: boolean }): Promise<any[]> => {
+    const res = await apiClient.get('/subjects', { params });
+    return res.data;
+  },
+  getById: async (id: number): Promise<any> => {
+    const res = await apiClient.get(`/subjects/${id}`);
+    return res.data;
+  },
+  create: async (data: {
+    class_level_id: number;
+    name: string;
+    code?: string;
+    full_mark?: number;
+    pass_mark?: number;
+    is_optional?: boolean;
+    can_be_4th_subject?: boolean;
+  }): Promise<any> => {
+    const res = await apiClient.post('/subjects', data);
+    return res.data;
+  },
+  update: async (id: number, data: Partial<{
+    class_level_id: number;
+    name: string;
+    code?: string;
+    full_mark?: number;
+    pass_mark?: number;
+    is_optional?: boolean;
+    can_be_4th_subject?: boolean;
+  }>): Promise<any> => {
+    const res = await apiClient.put(`/subjects/${id}`, data);
+    return res.data;
+  },
+  delete: async (id: number): Promise<{ message: string }> => {
+    const res = await apiClient.delete<{ message: string }>(`/subjects/${id}`);
+    return res.data;
+  },
+};
+
 export const schoolExamsApi = {
   getAll: async (params?: { term?: string; is_published?: boolean; search?: string }): Promise<SchoolExam[]> => {
     const res = await apiClient.get<SchoolExam[]>('/school-exams', { params });
@@ -161,8 +200,30 @@ export const schoolExamResultsApi = {
     const res = await apiClient.get(`/school-exam-results/report-card/${studentId}/exam/${examId}`);
     return res.data;
   },
+  saveStudentResult: async (payload: {
+    student_id: number;
+    exam_id: number;
+    marks: Array<{
+      subject_id: number;
+      subjective_mark: number;
+      objective_mark: number;
+      practical_mark?: number;
+      is_4th_subject?: boolean;
+    }>;
+  }) => {
+    const res = await apiClient.post('/school-exam-results/student-result', payload);
+    return res.data;
+  },
   getTabulation: async (examId: number, classLevelId: number): Promise<TabulationData> => {
     const res = await apiClient.get<TabulationData>(`/school-exam-results/tabulation/${examId}/class/${classLevelId}`);
+    return res.data;
+  },
+  update: async (id: number, data: Partial<{ subjective_mark: number; objective_mark: number; practical_mark?: number; is_4th_subject?: boolean }>): Promise<SchoolExamResult> => {
+    const res = await apiClient.put<SchoolExamResult>(`/school-exam-results/${id}`, data);
+    return res.data;
+  },
+  delete: async (id: number): Promise<{ message: string }> => {
+    const res = await apiClient.delete<{ message: string }>(`/school-exam-results/${id}`);
     return res.data;
   },
 };

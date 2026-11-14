@@ -481,7 +481,7 @@ export const SchoolExamsAndResultsSection: React.FC = () => {
               <div className="rounded-xl border border-dashed border-slate-200 p-8 text-center text-slate-400">
                 <BookOpen className="mx-auto h-8 w-8 text-slate-300 mb-2" />
                 <p className="text-sm font-medium text-slate-600">No marks recorded for this class in this exam</p>
-                <p className="text-xs text-slate-400 mt-0.5">Use the "Exams & GPA" module from sidebar to bulk enter student marks.</p>
+                <p className="text-xs text-slate-400 mt-0.5">Use the "Exam and Results" module from sidebar to record student marks.</p>
               </div>
             ) : (
               <div className="overflow-x-auto rounded-xl border border-slate-200">

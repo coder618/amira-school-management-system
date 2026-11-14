@@ -20,6 +20,10 @@ import {
   School,
   ChevronDown,
   Receipt,
+  FileSpreadsheet,
+  Edit2,
+  Edit3,
+  BookOpen,
 } from 'lucide-react';
 
 interface NavItem {
@@ -38,14 +42,34 @@ export const Layout: React.FC = () => {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  const isClassesActive = location.pathname.startsWith('/classes');
   const isFinanceActive = location.pathname.startsWith('/finance');
-  const [financeOpen, setFinanceOpen] = useState(isFinanceActive);
+  const isExamsActive = location.pathname.startsWith('/exams');
+
+  const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({
+    '/classes': isClassesActive,
+    '/finance': isFinanceActive,
+    '/exams': isExamsActive,
+  });
 
   useEffect(() => {
-    if (isFinanceActive) {
-      setFinanceOpen(true);
+    if (isClassesActive) {
+      setOpenMenus((prev) => ({ ...prev, '/classes': true }));
     }
-  }, [isFinanceActive]);
+    if (isFinanceActive) {
+      setOpenMenus((prev) => ({ ...prev, '/finance': true }));
+    }
+    if (isExamsActive) {
+      setOpenMenus((prev) => ({ ...prev, '/exams': true }));
+    }
+  }, [isClassesActive, isFinanceActive, isExamsActive]);
+
+  const toggleSubmenu = (menuPath: string) => {
+    setOpenMenus((prev) => ({
+      ...prev,
+      [menuPath]: !prev[menuPath],
+    }));
+  };
 
   const navItems: NavItem[] = [
     ...(user?.role === 'SuperAdmin'
@@ -53,7 +77,15 @@ export const Layout: React.FC = () => {
       : []),
     { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
     { label: 'Students (SIS)', path: '/students', icon: GraduationCap },
-    { label: 'Classes', path: '/classes', icon: Layers },
+    {
+      label: 'Classes',
+      path: '/classes',
+      icon: Layers,
+      children: [
+        { label: 'Manage Classes', path: '/classes/manage', icon: Layers },
+        { label: 'Class Subjects', path: '/classes/subjects', icon: BookOpen },
+      ],
+    },
     { label: 'Teachers & HR', path: '/teachers', icon: Users },
     { label: 'Attendance', path: '/attendance', icon: CalendarCheck },
     {
@@ -66,7 +98,17 @@ export const Layout: React.FC = () => {
         { label: 'Fund Collection Names', path: '/finance/fund-collections', icon: Layers },
       ],
     },
-    { label: 'Exams & GPA', path: '/exams', icon: Award },
+    {
+      label: 'Exam and Results',
+      path: '/exams',
+      icon: Award,
+      children: [
+        { label: 'Manage Exams', path: '/exams/manage', icon: CalendarCheck },
+        { label: 'Exam Marks', path: '/exams/marks', icon: Edit2 },
+        { label: 'Exam Results', path: '/exams/results', icon: FileSpreadsheet },
+        { label: 'Marks Entry', path: '/exams/marks-entry', icon: Edit3 },
+      ],
+    },
     { label: 'Notifications', path: '/notifications', icon: Bell },
     { label: 'Settings', path: '/settings', icon: Settings },
   ];
@@ -120,11 +162,13 @@ export const Layout: React.FC = () => {
                 (c) => location.pathname === c.path || location.pathname.startsWith(c.path)
               );
 
+              const isOpen = Boolean(openMenus[item.path]);
+
               return (
                 <div key={item.path} className="space-y-1">
                   <button
                     type="button"
-                    onClick={() => setFinanceOpen((prev) => !prev)}
+                    onClick={() => toggleSubmenu(item.path)}
                     className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
                       isChildActive
                         ? 'bg-slate-800 text-white font-semibold'
@@ -137,12 +181,12 @@ export const Layout: React.FC = () => {
                     </div>
                     <ChevronDown
                       className={`h-4 w-4 shrink-0 text-slate-400 transition-transform duration-200 ${
-                        financeOpen ? 'rotate-180 text-white' : ''
+                        isOpen ? 'rotate-180 text-white' : ''
                       }`}
                     />
                   </button>
 
-                  {financeOpen && (
+                  {isOpen && (
                     <div className="pl-3.5 pr-1 py-1 space-y-1 border-l-2 border-slate-800 ml-4">
                       {item.children.map((sub) => {
                         const SubIcon = sub.icon;

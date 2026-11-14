@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useSchoolClasses } from '../hooks/useSchoolClasses';
 import { ClassManagementModal } from './ClassManagementModal';
 import { ClassLevel } from '../types';
@@ -13,9 +14,11 @@ import {
   AlertCircle,
   RefreshCw,
   Check,
+  BookOpen,
 } from 'lucide-react';
 
 export const ClassList: React.FC = () => {
+  const navigate = useNavigate();
   const {
     classes,
     allClasses,
@@ -133,6 +136,15 @@ export const ClassList: React.FC = () => {
             title="Refresh roster"
           >
             <RefreshCw className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate('/classes/subjects')}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-semibold text-slate-700 shadow-xs hover:bg-slate-50 transition-colors cursor-pointer"
+            title="Manage Class Subjects"
+          >
+            <BookOpen className="h-4 w-4 text-indigo-600" />
+            <span>Class Subjects</span>
           </button>
           <button
             type="button"
@@ -382,6 +394,15 @@ export const ClassList: React.FC = () => {
                 </div>
 
                 <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/classes/subjects?class_id=${cls.id}`)}
+                    className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 transition-colors cursor-pointer"
+                    title="View & manage subjects for this class"
+                  >
+                    <BookOpen className="h-3.5 w-3.5 text-indigo-500" />
+                    <span>Subjects</span>
+                  </button>
                   <button
                     type="button"
                     onClick={() => setIsModalOpen(true)}

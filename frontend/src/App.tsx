@@ -8,6 +8,7 @@ import { Register } from './pages/Register';
 import { Dashboard } from './pages/Dashboard';
 import { Students } from './pages/Students';
 import { Classes } from './pages/Classes';
+import { ClassSubjectsPage } from './pages/ClassSubjectsPage';
 import { Teachers } from './pages/Teachers';
 import { Attendance } from './pages/Attendance';
 import { Finance } from './pages/Finance';
@@ -15,6 +16,10 @@ import { FinanceInvoices } from './pages/FinanceInvoices';
 import { FinancePayments } from './pages/FinancePayments';
 import { FinanceFundCollections } from './pages/FinanceFundCollections';
 import { Examinations } from './pages/Examinations';
+import { ManageExamsPage } from './pages/ManageExamsPage';
+import { ExamMarksPage } from './pages/ExamMarksPage';
+import { ManageResultsPage } from './pages/ManageResultsPage';
+import { MarksEntryPage } from './pages/MarksEntryPage';
 import { SuperAdmin } from './pages/SuperAdmin';
 import { Settings } from './pages/Settings';
 import { Notifications } from './pages/Notifications';
@@ -34,6 +39,8 @@ export const App: React.FC = () => {
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/students" element={<Students />} />
               <Route path="/classes" element={<Classes />} />
+              <Route path="/classes/manage" element={<Classes />} />
+              <Route path="/classes/subjects" element={<ClassSubjectsPage />} />
               <Route path="/teachers" element={<Teachers />} />
               <Route path="/attendance" element={<Attendance />} />
               <Route path="/finance" element={<Finance />} />
@@ -42,6 +49,10 @@ export const App: React.FC = () => {
               <Route path="/finance/fund-collections" element={<FinanceFundCollections />} />
               <Route path="/finance/categories" element={<Navigate to="/finance/fund-collections" replace />} />
               <Route path="/exams" element={<Examinations />} />
+              <Route path="/exams/manage" element={<ManageExamsPage />} />
+              <Route path="/exams/marks" element={<ExamMarksPage />} />
+              <Route path="/exams/results" element={<ManageResultsPage />} />
+              <Route path="/exams/marks-entry" element={<MarksEntryPage />} />
               <Route path="/notifications" element={<Notifications />} />
               <Route path="/super-admin" element={<SuperAdmin />} />
               <Route path="/settings" element={<Settings />} />
