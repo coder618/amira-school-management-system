@@ -4,16 +4,22 @@ import { academicApi } from '../../academic/api';
 import {
   Payment,
   FundCollectionName,
+  Invoice,
+  CreateInvoicePayload,
+  PayInvoicePayload,
   CreatePaymentPayload,
   SettlePaymentPayload,
   CreateFundCollectionNamePayload,
+  UserSummary,
 } from '../types';
 import { Student } from '../../academic/types';
 
 export const useFinance = () => {
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [fundCollections, setFundCollections] = useState<FundCollectionName[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
+  const [users, setUsers] = useState<UserSummary[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,7 +32,12 @@ export const useFinance = () => {
     setLoading(true);
     setError(null);
     try {
-      const [payData, colData, stuData] = await Promise.all([
+      const [invData, payData, colData, stuData, userData] = await Promise.all([
+        financeApi.getInvoices({
+          status: statusFilter || undefined,
+          fund_collection_name_id: collectionFilter || undefined,
+          search: searchQuery || undefined,
+        }),
         financeApi.getPayments({
           status: statusFilter || undefined,
           fund_collection_name_id: collectionFilter || undefined,
@@ -34,12 +45,15 @@ export const useFinance = () => {
         }),
         financeApi.getFundCollections(),
         academicApi.getStudents(),
+        financeApi.getUsers().catch(() => []),
       ]);
+      setInvoices(invData);
       setPayments(payData);
       setFundCollections(colData);
       setStudents(stuData);
+      setUsers(userData);
     } catch {
-      setError('Failed to fetch collections and payment records.');
+      setError('Failed to fetch finance records and invoices.');
     } finally {
       setLoading(false);
     }
@@ -49,7 +63,26 @@ export const useFinance = () => {
     fetchFinanceData();
   }, [fetchFinanceData]);
 
-  // Payment CRUD
+  // Invoice Actions
+  const addInvoice = async (payload: CreateInvoicePayload) => {
+    const res = await financeApi.createInvoice(payload);
+    await fetchFinanceData();
+    return res;
+  };
+
+  const payInvoice = async (invoiceId: number, payload: PayInvoicePayload) => {
+    const res = await financeApi.payInvoice(invoiceId, payload);
+    await fetchFinanceData();
+    return res;
+  };
+
+  const deleteInvoice = async (id: number) => {
+    const res = await financeApi.deleteInvoice(id);
+    await fetchFinanceData();
+    return res;
+  };
+
+  // Payment Actions
   const addPayment = async (payload: CreatePaymentPayload) => {
     const res = await financeApi.createPayment(payload);
     await fetchFinanceData();
@@ -68,7 +101,7 @@ export const useFinance = () => {
     return res;
   };
 
-  // FundCollectionName CRUD
+  // Fund Collection Head Actions
   const addFundCollection = async (payload: CreateFundCollectionNamePayload) => {
     const res = await financeApi.createFundCollection(payload);
     await fetchFinanceData();
@@ -87,16 +120,22 @@ export const useFinance = () => {
     return res;
   };
 
-  // Financial Aggregate Metrics
-  const totalBilled = payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
-  const totalCollected = payments.reduce((sum, p) => sum + Number(p.paid_amount || 0), 0);
-  const totalDue = payments.reduce((sum, p) => sum + Number(p.due_amount || 0), 0);
-  const transactionCount = payments.length;
+  // Computed Totals for Invoices
+  const totalInvoiced = invoices.reduce((sum, inv) => sum + Number(inv.amount), 0);
+  const totalInvoiceCollected = invoices.reduce((sum, inv) => sum + Number(inv.paid_amount), 0);
+  const totalInvoiceDue = invoices.reduce((sum, inv) => sum + Number(inv.due_amount), 0);
+
+  // Computed Totals for Direct Payments
+  const totalBilled = payments.reduce((sum, pay) => sum + Number(pay.amount), 0);
+  const totalCollected = payments.reduce((sum, pay) => sum + Number(pay.paid_amount), 0);
+  const totalDue = payments.reduce((sum, pay) => sum + Number(pay.due_amount), 0);
 
   return {
+    invoices,
     payments,
     fundCollections,
     students,
+    users,
     loading,
     error,
     statusFilter,
@@ -105,21 +144,25 @@ export const useFinance = () => {
     setCollectionFilter,
     searchQuery,
     setSearchQuery,
-    totalBilled,
-    totalCollected,
-    totalDue,
-    transactionCount,
     fetchFinanceData,
+    // Invoice methods & metrics
+    addInvoice,
+    payInvoice,
+    deleteInvoice,
+    totalInvoiced,
+    totalInvoiceCollected,
+    totalInvoiceDue,
+    // Payment methods & metrics
     addPayment,
     settlePayment,
     deletePayment,
+    totalBilled,
+    totalCollected,
+    totalDue,
+    transactionCount: payments.length,
+    // Fund Collection methods
     addFundCollection,
     updateFundCollection,
     deleteFundCollection,
-
-    // Backward compatibility aliases
-    invoices: payments,
-    categories: fundCollections,
-    addInvoice: addPayment,
   };
 };

@@ -300,6 +300,65 @@ class DatabaseSeeder extends Seeder
                             'notes' => 'Partial installment paid at counter',
                         ]
                     );
+
+                    // 6.1 Sample User Invoices
+                    $studentUserObj = $firstStudent->user ?? User::where('school_id', $school->id)->where('role', 'Student')->first() ?? $adminUser;
+                    if ($studentUserObj) {
+                        \App\Modules\Invoice\Models\Invoice::firstOrCreate(
+                            ['school_id' => $school->id, 'invoice_no' => 'INV-2026-0001'],
+                            [
+                                'academic_year_id' => $year->id,
+                                'user_id' => $studentUserObj->id,
+                                'student_id' => $firstStudent->id,
+                                'fund_collection_name_id' => $monthlyFee->id,
+                                'title' => 'Monthly Tuition - November 2026',
+                                'amount' => 2500.00,
+                                'paid_amount' => 0.00,
+                                'due_amount' => 2500.00,
+                                'status' => 'due',
+                                'due_date' => '2026-11-25',
+                                'notes' => 'Monthly academic tuition invoice',
+                            ]
+                        );
+
+                        \App\Modules\Invoice\Models\Invoice::firstOrCreate(
+                            ['school_id' => $school->id, 'invoice_no' => 'INV-2026-0002'],
+                            [
+                                'academic_year_id' => $year->id,
+                                'user_id' => $studentUserObj->id,
+                                'student_id' => $firstStudent->id,
+                                'fund_collection_name_id' => $examFee->id,
+                                'title' => 'First Term Exam Fee',
+                                'amount' => 1200.00,
+                                'paid_amount' => 500.00,
+                                'due_amount' => 700.00,
+                                'status' => 'partially_paid',
+                                'payment_method' => 'Cash',
+                                'transaction_id' => 'CASH-REC-002',
+                                'due_date' => '2026-11-20',
+                                'notes' => 'Initial installment paid at admissions desk',
+                            ]
+                        );
+
+                        \App\Modules\Invoice\Models\Invoice::firstOrCreate(
+                            ['school_id' => $school->id, 'invoice_no' => 'INV-2026-0003'],
+                            [
+                                'academic_year_id' => $year->id,
+                                'user_id' => $studentUserObj->id,
+                                'student_id' => $firstStudent->id,
+                                'fund_collection_name_id' => $monthlyFee->id,
+                                'title' => 'Monthly Tuition - October 2026',
+                                'amount' => 2500.00,
+                                'paid_amount' => 2500.00,
+                                'due_amount' => 0.00,
+                                'status' => 'paid',
+                                'payment_method' => 'bKash',
+                                'transaction_id' => 'BKASH-9X82LA71',
+                                'due_date' => '2026-10-25',
+                                'notes' => 'Settled in full via bKash',
+                            ]
+                        );
+                    }
                 }
 
                     // 7. Examination Module Seeds (SchoolExams & SchoolExamResults)

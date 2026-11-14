@@ -89,6 +89,35 @@ class AuthController extends Controller
     }
 
     /**
+     * List all users scoped to the school tenant.
+     */
+    public function index(Request $request): JsonResponse
+    {
+        $schoolId = auth()->user()?->school_id
+            ?? ($request->header('X-School-Id') ? (int) $request->header('X-School-Id') : null);
+
+        $query = User::query();
+        if ($schoolId) {
+            $query->where('school_id', $schoolId);
+        }
+
+        if ($request->filled('role')) {
+            $query->where('role', $request->query('role'));
+        }
+
+        if ($request->filled('search')) {
+            $search = $request->query('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('phone_number', 'like', "%{$search}%");
+            });
+        }
+
+        return response()->json($query->orderBy('name')->get(['id', 'name', 'email', 'role', 'phone_number', 'profile_picture']));
+    }
+
+    /**
      * Upload or update the authenticated user's own profile picture.
      */
     public function updateProfilePicture(Request $request): JsonResponse

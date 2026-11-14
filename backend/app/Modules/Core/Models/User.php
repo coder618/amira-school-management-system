@@ -80,6 +80,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Invoices issued directly to this user.
+     */
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(\App\Modules\Invoice\Models\Invoice::class);
+    }
+
+    /**
      * Role checking helpers.
      */
     public function isSuperAdmin(): bool

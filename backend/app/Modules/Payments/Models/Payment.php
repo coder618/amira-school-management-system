@@ -22,6 +22,8 @@ class Payment extends Model
         'academic_year_id',
         'fund_collection_name_id',
         'student_id',
+        'invoice_id',
+        'user_id',
         'receipt_no',
         'amount',
         'paid_amount',
@@ -49,6 +51,16 @@ class Payment extends Model
     public function fundCollectionName(): BelongsTo
     {
         return $this->belongsTo(FundCollectionName::class, 'fund_collection_name_id');
+    }
+
+    public function invoice(): BelongsTo
+    {
+        return $this->belongsTo(\App\Modules\Invoice\Models\Invoice::class, 'invoice_id');
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(\App\Modules\Core\Models\User::class, 'user_id');
     }
 
     public function student(): BelongsTo

@@ -5,9 +5,55 @@ import {
   CreatePaymentPayload,
   SettlePaymentPayload,
   CreateFundCollectionNamePayload,
+  Invoice,
+  CreateInvoicePayload,
+  PayInvoicePayload,
+  UserSummary,
 } from '../types';
 
 export const financeApi = {
+  // Invoices Module APIs
+  getInvoices: async (params?: { user_id?: number; status?: string; fund_collection_name_id?: number; search?: string }): Promise<Invoice[]> => {
+    const res = await apiClient.get<Invoice[]>('/invoices', { params });
+    return res.data;
+  },
+
+  getInvoiceById: async (id: number): Promise<Invoice> => {
+    const res = await apiClient.get<Invoice>(`/invoices/${id}`);
+    return res.data;
+  },
+
+  createInvoice: async (payload: CreateInvoicePayload): Promise<Invoice> => {
+    const res = await apiClient.post<Invoice>('/invoices', payload);
+    return res.data;
+  },
+
+  payInvoice: async (
+    invoiceId: number,
+    payload: PayInvoicePayload
+  ): Promise<{ message: string; invoice: Invoice; payment: Payment }> => {
+    const res = await apiClient.post<{ message: string; invoice: Invoice; payment: Payment }>(
+      `/invoices/${invoiceId}/pay`,
+      payload
+    );
+    return res.data;
+  },
+
+  deleteInvoice: async (id: number): Promise<{ message: string }> => {
+    const res = await apiClient.delete<{ message: string }>(`/invoices/${id}`);
+    return res.data;
+  },
+
+  getInvoiceStats: async () => {
+    const res = await apiClient.get('/invoices-stats');
+    return res.data;
+  },
+
+  getUsers: async (params?: { role?: string; search?: string }): Promise<UserSummary[]> => {
+    const res = await apiClient.get<UserSummary[]>('/users', { params });
+    return res.data;
+  },
+
   // Payments Module APIs
   getPayments: async (params?: { fund_collection_name_id?: number; student_id?: number; status?: string; payment_method?: string; search?: string }): Promise<Payment[]> => {
     const res = await apiClient.get<Payment[]>('/payments', { params });
@@ -56,16 +102,6 @@ export const financeApi = {
   },
 
   // Backward compatibility methods
-  getInvoices: async (params?: { student_id?: number; status?: string }): Promise<Payment[]> => {
-    const res = await apiClient.get<Payment[]>('/payments', { params });
-    return res.data;
-  },
-
-  createInvoice: async (payload: CreatePaymentPayload): Promise<Payment> => {
-    const res = await apiClient.post<Payment>('/payments', payload);
-    return res.data;
-  },
-
   recordPayment: async (payload: SettlePaymentPayload & { invoice_id?: number }): Promise<Payment> => {
     if (payload.invoice_id) {
       const res = await apiClient.post<{ message: string; payment: Payment }>(`/payments/${payload.invoice_id}/settle`, payload);

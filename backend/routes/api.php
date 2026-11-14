@@ -10,6 +10,7 @@ use App\Modules\Attendance\Controllers\AttendanceController;
 use App\Modules\Core\Controllers\SchoolController;
 use App\Modules\FundCollectionName\Controllers\FundCollectionNameController;
 use App\Modules\HR\Controllers\TeacherController;
+use App\Modules\Invoice\Controllers\InvoiceController;
 use App\Modules\Notification\Controllers\NotificationController;
 use App\Modules\Payments\Controllers\PaymentController;
 use App\Modules\SchoolClass\Controllers\ClassLevelController;
@@ -34,6 +35,7 @@ Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::middleware('auth:sanctum')->group(function () {
     // Current user & session
     Route::get('/user', [AuthController::class, 'user']);
+    Route::get('/users', [AuthController::class, 'index']);
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/user/profile-picture', [AuthController::class, 'updateProfilePicture']);
     Route::delete('/user/profile-picture', [AuthController::class, 'deleteProfilePicture']);
@@ -65,10 +67,15 @@ Route::middleware('auth:sanctum')->group(function () {
     // 4. FundCollectionName & Payments Modules (Tenant Fees & Collections)
     Route::apiResource('fund-collection-names', FundCollectionNameController::class)->parameters(['fund-collection-names' => 'fundCollectionName']);
     Route::get('/fee-categories', [FundCollectionNameController::class, 'index']); // backward compatibility alias
-    Route::get('/invoices', [PaymentController::class, 'index']); // backward compatibility alias
     Route::apiResource('payments', PaymentController::class)->parameters(['payments' => 'payment']);
     Route::post('/payments/{payment}/settle', [PaymentController::class, 'settle']);
     Route::get('/payments-stats', [PaymentController::class, 'stats']);
+
+    // 4.1 Invoices Module (User Invoices, Status Tracking, Online/Offline Payment & Payment Record Generation)
+    Route::get('/invoices/stats', [InvoiceController::class, 'stats']);
+    Route::get('/invoices-stats', [InvoiceController::class, 'stats']);
+    Route::post('/invoices/{invoice}/pay', [InvoiceController::class, 'pay']);
+    Route::apiResource('invoices', InvoiceController::class)->parameters(['invoices' => 'invoice']);
 
     // 5. Academic Subjects APIs
     Route::get('/subjects', [SubjectController::class, 'index']);

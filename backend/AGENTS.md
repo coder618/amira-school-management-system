@@ -55,14 +55,28 @@ The architecture follows a strict Domain-Driven modular structure in `app/Module
 
 ### 7. Payments Module (Tenant Collections & Student Billing)
 *   **Location:** `app/Modules/Payments`
-*   **Entities:** `Payment` (student_id, fund_collection_name_id, receipt_no, amount, paid_amount, due_amount, status: paid/due/partially_paid/cancelled, payment_method: Cash/bKash/Nagad/Bank/Rocket, transaction_id, payment_date, due_date, received_by, notes).
+*   **Entities:** `Payment` (student_id, fund_collection_name_id, invoice_id, user_id, receipt_no, amount, paid_amount, due_amount, status: paid/due/partially_paid/cancelled, payment_method: Cash/bKash/Nagad/Bank/Rocket, transaction_id, payment_date, due_date, received_by, notes).
 *   **Logic:**
-    *   Must strictly belong to a specific `FundCollectionName` entity.
+    *   Must strictly belong to a specific `FundCollectionName` entity (or invoice).
     *   Automated status calculation: `paid` (full settlement), `partially_paid` (installments), `due` (unpaid).
     *   Settle endpoint (`/api/payments/{id}/settle`) for paying remaining dues.
     *   Multi-tenant isolated per school (`school_id`).
 
-### 8. SchoolExams Module (Tenant Exams)
+### 8. Invoice Module (User Invoices & Payment Gateway Recording)
+*   **Location:** `app/Modules/Invoice`
+*   **Entities:** `Invoice` (user_id, student_id, fund_collection_name_id, invoice_no, title, amount, paid_amount, due_amount, status: paid/partially_paid/due, payment_method, transaction_id, due_date, notes).
+*   **Logic:**
+    *   Each invoice is strictly attached to a specific `User` (and optionally student/collection head).
+    *   Statuses strictly supported: `paid`, `partially_paid`, `due`.
+    *   Payment endpoint (`POST /api/invoices/{id}/pay`):
+        *   Accepts payment system name: `bKash`, `Nagad`, `Bank`, `Rocket`, `Cash`, `Upay`.
+        *   Accepts `transaction_id` and payment `amount`.
+        *   Supports partial and full payments.
+        *   Automatically updates invoice status (`due` -> `partially_paid` or `paid`).
+        *   **Crucial Workflow:** Whenever an invoice is paid or partially paid, it generates a verified payment record in the `Payments` module.
+    *   Multi-tenant isolated per school (`school_id`).
+
+### 9. SchoolExams Module (Tenant Exams)
 *   **Location:** `app/Modules/SchoolExams`
 *   **Entities:** `Exam` (name, term, start_date, end_date, is_published).
 *   **Logic:** 
@@ -70,7 +84,7 @@ The architecture follows a strict Domain-Driven modular structure in `app/Module
     *   Exam name unique per tenant school & academic year (`['school_id', 'academic_year_id', 'name']`).
     *   Protected deletion: cannot delete an exam with active student marks.
 
-### 9. SchoolExamResults Module (NCTB Grading & Tabulation)
+### 10. SchoolExamResults Module (NCTB Grading & Tabulation)
 *   **Location:** `app/Modules/SchoolExamResults`
 *   **Entities:** `ExamResult` (student_id, exam_id, subject_id, subjective_mark, objective_mark, practical_mark, total_mark, is_4th_subject, gpa, grade).
 *   **Logic:**
@@ -79,7 +93,7 @@ The architecture follows a strict Domain-Driven modular structure in `app/Module
     *   Fail Rule: If any main subject is F (0.00), composite GPA is 0.00 (Failed).
     *   Features: Individual mark entry, rapid bulk marks recording, official NCTB Student Report Cards, and full class Tabulation Sheets with automated merit rank ordering.
 
-### 10. Notification Module (User-Pointed Notifications)
+### 11. Notification Module (User-Pointed Notifications)
 *   **Location:** `app/Modules/Notification`
 *   **Entities:** `Notification` (`user_notifications` table with user_id, school_id, title, message, type, data, read_at, deleted_at).
 *   **Logic:**
