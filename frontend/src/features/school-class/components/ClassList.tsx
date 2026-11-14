@@ -7,7 +7,6 @@ import {
   Plus,
   Search,
   Users,
-  Grid,
   Trash2,
   Edit2,
   Loader2,
@@ -82,10 +81,6 @@ export const ClassList: React.FC = () => {
 
   // Computed stats
   const totalClasses = allClasses.length;
-  const totalSections = allClasses.reduce(
-    (acc, curr) => acc + (curr.sections_count ?? curr.sections?.length ?? 0),
-    0
-  );
   const totalStudents = allClasses.reduce(
     (acc, curr) => acc + (curr.students_count ?? 0),
     0
@@ -126,7 +121,7 @@ export const ClassList: React.FC = () => {
             School Classes & Structure
           </h1>
           <p className="text-xs sm:text-sm text-slate-500">
-            Dedicated module to manage class levels, academic grades, and sections unique to this school tenant
+            Dedicated module to manage class levels and academic grades unique to this school tenant
           </p>
         </div>
 
@@ -151,7 +146,7 @@ export const ClassList: React.FC = () => {
       </div>
 
       {/* Metrics Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
@@ -164,21 +159,6 @@ export const ClassList: React.FC = () => {
           <div className="mt-3 flex items-baseline gap-2">
             <span className="text-3xl font-extrabold text-slate-900">{totalClasses}</span>
             <span className="text-xs text-slate-500">grades/levels</span>
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              Sections Active
-            </span>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-              <Grid className="h-5 w-5" />
-            </div>
-          </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-3xl font-extrabold text-slate-900">{totalSections}</span>
-            <span className="text-xs text-slate-500">streams (Padma, Meghna, etc.)</span>
           </div>
         </div>
 
@@ -391,29 +371,6 @@ export const ClassList: React.FC = () => {
                   <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-medium text-emerald-700 border border-emerald-200/60">
                     Tenant Isolated
                   </span>
-                </div>
-
-                {/* Sections list */}
-                <div className="mt-4 pt-3 border-t border-slate-100">
-                  <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block mb-2">
-                    Sections ({cls.sections?.length ?? 0})
-                  </span>
-                  {cls.sections && cls.sections.length > 0 ? (
-                    <div className="flex flex-wrap gap-1.5">
-                      {cls.sections.map((sec) => (
-                        <span
-                          key={sec.id}
-                          className="inline-flex items-center gap-1 rounded-lg bg-slate-50 px-2 py-1 text-xs font-medium text-slate-700 border border-slate-200"
-                        >
-                          <Grid className="h-3 w-3 text-slate-400" />
-                          <span>{sec.name}</span>
-                          <span className="text-[10px] text-slate-400">({sec.capacity} cap)</span>
-                        </span>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-slate-400 italic">No sections created yet</p>
-                  )}
                 </div>
               </div>
 

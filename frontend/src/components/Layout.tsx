@@ -30,7 +30,7 @@ export const Layout: React.FC = () => {
       : []),
     { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
     { label: 'Students (SIS)', path: '/students', icon: GraduationCap },
-    { label: 'Classes & Sections', path: '/classes', icon: Layers },
+    { label: 'Classes', path: '/classes', icon: Layers },
     { label: 'Teachers & HR', path: '/teachers', icon: Users },
     { label: 'Attendance', path: '/attendance', icon: CalendarCheck },
     { label: 'Finance & Fees', path: '/finance', icon: CreditCard },

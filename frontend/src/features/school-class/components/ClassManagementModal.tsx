@@ -11,7 +11,6 @@ import {
   Loader2,
   AlertCircle,
   Users,
-  Grid,
 } from 'lucide-react';
 
 interface ClassManagementModalProps {
@@ -385,10 +384,6 @@ export const ClassManagementModal: React.FC<ClassManagementModalProps> = ({
                                 )}
                               </div>
                               <div className="flex items-center gap-3 mt-0.5 text-[11px] text-slate-500">
-                                <span className="flex items-center gap-1">
-                                  <Grid className="h-3 w-3 text-slate-400" />
-                                  {cls.sections_count ?? cls.sections?.length ?? 0} Sections
-                                </span>
                                 <span className="flex items-center gap-1">
                                   <Users className="h-3 w-3 text-slate-400" />
                                   {cls.students_count ?? 0} Students
