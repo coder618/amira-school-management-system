@@ -70,7 +70,7 @@ class StudentController extends Controller
 
         $uploadedMedia = [];
 
-        foreach (['student_image', 'parent_image', 'father_image', 'mother_image'] as $imageKey) {
+        foreach (['student_image', 'father_image', 'mother_image', 'parent_image'] as $imageKey) {
             if ($request->hasFile($imageKey)) {
                 $collection = ($imageKey === 'student_image') ? 'student_images' : 'parent_images';
                 $media = $this->mediaService->upload(
@@ -84,6 +84,13 @@ class StudentController extends Controller
             } elseif ($request->filled($imageKey)) {
                 $validated[$imageKey] = $request->input($imageKey);
             }
+        }
+
+        // Keep parent_image synchronized with father_image if not separately provided
+        if (isset($validated['father_image']) && ! isset($validated['parent_image'])) {
+            $validated['parent_image'] = $validated['father_image'];
+        } elseif (isset($validated['parent_image']) && ! isset($validated['father_image'])) {
+            $validated['father_image'] = $validated['parent_image'];
         }
 
         $student = DB::transaction(function () use ($validated, $request, $schoolId, $uploadedMedia) {
@@ -161,7 +168,7 @@ class StudentController extends Controller
 
         $uploadedMedia = [];
 
-        foreach (['student_image', 'parent_image', 'father_image', 'mother_image'] as $imageKey) {
+        foreach (['student_image', 'father_image', 'mother_image', 'parent_image'] as $imageKey) {
             if ($request->hasFile($imageKey)) {
                 $collection = ($imageKey === 'student_image') ? 'student_images' : 'parent_images';
                 $media = $this->mediaService->upload(
@@ -176,6 +183,13 @@ class StudentController extends Controller
             } elseif ($request->filled($imageKey)) {
                 $validated[$imageKey] = $request->input($imageKey);
             }
+        }
+
+        // Keep parent_image synchronized with father_image if not separately provided
+        if (isset($validated['father_image']) && ! isset($validated['parent_image'])) {
+            $validated['parent_image'] = $validated['father_image'];
+        } elseif (isset($validated['parent_image']) && ! isset($validated['father_image'])) {
+            $validated['father_image'] = $validated['parent_image'];
         }
 
         DB::transaction(function () use ($student, $validated) {

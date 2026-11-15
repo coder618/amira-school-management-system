@@ -251,7 +251,6 @@ export const EditStudentPage: React.FC = () => {
           data.append('student_image', studentImageFile);
         }
         if (parentImageFile) {
-          data.append('parent_image', parentImageFile);
           data.append('father_image', parentImageFile);
         }
         if (motherImageFile) {

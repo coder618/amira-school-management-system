@@ -14,10 +14,21 @@ class UpdateStudentRequest extends FormRequest
     public function rules(): array
     {
         $imageRule = function ($attribute, $value, $fail) {
-            if ($this->hasFile($attribute)) {
-                $file = $this->file($attribute);
+            $file = $this->file($attribute) ?? ($value instanceof \Illuminate\Http\UploadedFile ? $value : null);
+
+            if ($file instanceof \Illuminate\Http\UploadedFile) {
+                if (! $file->isValid()) {
+                    if ($file->getError() === UPLOAD_ERR_INI_SIZE || $file->getError() === UPLOAD_ERR_FORM_SIZE) {
+                        $fail("The {$attribute} exceeds the maximum upload file size.");
+                    } else {
+                        $fail("The {$attribute} failed to upload: " . $file->getErrorMessage());
+                    }
+                    return;
+                }
+
                 $allowedMimes = ['jpeg', 'png', 'jpg', 'webp', 'gif'];
-                if (! in_array(strtolower($file->getClientOriginalExtension()), $allowedMimes)) {
+                $ext = strtolower($file->getClientOriginalExtension() ?: $file->guessExtension() ?: '');
+                if (! in_array($ext, $allowedMimes)) {
                     $fail("The {$attribute} must be an image (jpeg, png, jpg, webp, gif).");
                 }
                 if ($file->getSize() > 5120 * 1024) {
