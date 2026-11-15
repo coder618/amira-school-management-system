@@ -123,7 +123,7 @@ export const PaymentsView: React.FC = () => {
             {formatBdtCurrency(totalCollected)}
           </p>
           <span className="mt-1 flex items-center gap-1 text-[11px] text-emerald-600">
-            Cash, bKash & Nagad settled revenue
+            Cash, bKash & Nagad collected revenue
           </span>
         </div>
 
