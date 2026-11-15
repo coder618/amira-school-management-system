@@ -275,10 +275,11 @@ export const InvoiceList: React.FC = () => {
           <button
             type="button"
             onClick={() => setActiveTab('invoices')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${activeTab === 'invoices'
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+              activeTab === 'invoices'
                 ? 'bg-indigo-600 text-white shadow-sm'
                 : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/80'
-              }`}
+            }`}
           >
             <Receipt className="h-4 w-4" />
             <span>User Invoices ({invoices.length})</span>
@@ -287,10 +288,11 @@ export const InvoiceList: React.FC = () => {
           <button
             type="button"
             onClick={() => setActiveTab('payments')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${activeTab === 'payments'
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+              activeTab === 'payments'
                 ? 'bg-indigo-600 text-white shadow-sm'
                 : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/80'
-              }`}
+            }`}
           >
             <CreditCard className="h-4 w-4" />
             <span>Payment Records ({payments.length})</span>
@@ -299,10 +301,11 @@ export const InvoiceList: React.FC = () => {
           <button
             type="button"
             onClick={() => setActiveTab('collections')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${activeTab === 'collections'
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+              activeTab === 'collections'
                 ? 'bg-indigo-600 text-white shadow-sm'
                 : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/80'
-              }`}
+            }`}
           >
             <Layers className="h-4 w-4" />
             <span>Fund Collection Names ({fundCollections.length})</span>

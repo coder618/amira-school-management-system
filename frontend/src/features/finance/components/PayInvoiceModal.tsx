@@ -152,10 +152,11 @@ export const PayInvoiceModal: React.FC<PayInvoiceModalProps> = ({
                     key={gw.name}
                     type="button"
                     onClick={() => setPaymentMethod(gw.name)}
-                    className={`px-3 py-2 rounded-xl text-xs font-bold transition-all border text-center ${isSelected
+                    className={`px-3 py-2 rounded-xl text-xs font-bold transition-all border text-center ${
+                      isSelected
                         ? 'border-indigo-600 bg-indigo-50 text-indigo-700 shadow-xs ring-1 ring-indigo-500'
                         : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-                      }`}
+                    }`}
                   >
                     {gw.name}
                   </button>
@@ -209,10 +210,11 @@ export const PayInvoiceModal: React.FC<PayInvoiceModalProps> = ({
 
           {/* Dynamic Status Preview & Payment Module Note */}
           <div
-            className={`p-3 rounded-xl border text-xs flex items-start gap-2.5 ${isFullPayment
+            className={`p-3 rounded-xl border text-xs flex items-start gap-2.5 ${
+              isFullPayment
                 ? 'bg-emerald-50/60 border-emerald-200 text-emerald-800'
                 : 'bg-amber-50/60 border-amber-200 text-amber-800'
-              }`}
+            }`}
           >
             <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" />
             <div className="space-y-1">
