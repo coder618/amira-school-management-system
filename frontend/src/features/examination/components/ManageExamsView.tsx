@@ -528,12 +528,12 @@ export const ManageExamsView: React.FC = () => {
                       <div className="flex items-center justify-end gap-1.5">
                         <button
                           type="button"
-                          onClick={() => navigate(`/exams/marks-entry?exam_id=${exam.id}`)}
+                          onClick={() => navigate(`/exams/marks?exam_id=${exam.id}`)}
                           className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors cursor-pointer"
-                          title="Bulk Enter Marks"
+                          title="Enter & View Marks"
                         >
                           <Edit3 className="h-3.5 w-3.5" />
-                          <span className="hidden sm:inline">Enter Marks</span>
+                          <span className="hidden sm:inline">Marks</span>
                         </button>
 
                         <button

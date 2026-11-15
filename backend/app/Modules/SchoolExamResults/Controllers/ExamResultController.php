@@ -14,9 +14,12 @@ use App\Modules\SchoolExamResults\Requests\StoreExamResultRequest;
 use App\Modules\SchoolExamResults\Requests\UpdateExamResultRequest;
 use App\Modules\SchoolExamResults\Services\NctbGradingService;
 use App\Modules\SchoolExams\Models\Exam;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class ExamResultController extends Controller
 {
@@ -248,7 +251,7 @@ class ExamResultController extends Controller
         });
 
         return response()->json([
-            'message' => 'NCTB exam marks recorded successfully for ' . count($savedResults) . ' students.',
+            'message' => 'NCTB exam marks recorded successfully for '.count($savedResults).' students.',
             'count' => count($savedResults),
         ], 201);
     }
@@ -375,6 +378,110 @@ class ExamResultController extends Controller
     }
 
     /**
+     * Generate and download professional PDF Result Slip / Academic Transcript for a student.
+     */
+    public function downloadPdf(Request $request, int $studentId, int $examId): Response
+    {
+        $student = Student::with(['classLevel', 'section', 'shift', 'school'])->findOrFail($studentId);
+        $exam = Exam::with('academicYear')->findOrFail($examId);
+
+        // Multi-tenant security check
+        if (auth()->check() && auth()->user()->school_id) {
+            if ($student->school_id !== auth()->user()->school_id || $exam->school_id !== auth()->user()->school_id) {
+                abort(403, 'Unauthorized access to this school tenant.');
+            }
+        }
+
+        $marks = ExamResult::with('subject')
+            ->where('student_id', $studentId)
+            ->where('exam_id', $examId)
+            ->get();
+
+        $subjectGradesForGpa = $marks->map(function ($m) {
+            return [
+                'gpa' => (float) $m->gpa,
+                'is_4th_subject' => (bool) $m->is_4th_subject,
+            ];
+        })->toArray();
+
+        $finalEvaluation = $this->gradingService->calculateFinalGpa($subjectGradesForGpa);
+        $totalMarksObtained = $marks->sum('total_mark');
+
+        // Determine student merit position / rank if classLevel is available
+        $rank = null;
+        if ($student->class_level_id) {
+            $classStudents = Student::where('class_level_id', $student->class_level_id)
+                ->forTenant()
+                ->pluck('id');
+
+            $allClassMarks = ExamResult::where('exam_id', $examId)
+                ->whereIn('student_id', $classStudents)
+                ->get()
+                ->groupBy('student_id');
+
+            $studentScores = [];
+            foreach ($classStudents as $cStudentId) {
+                $cMarks = $allClassMarks->get($cStudentId, collect());
+                $cGrades = $cMarks->map(fn ($m) => [
+                    'gpa' => (float) $m->gpa,
+                    'is_4th_subject' => (bool) $m->is_4th_subject,
+                ])->toArray();
+                $cEval = $this->gradingService->calculateFinalGpa($cGrades);
+                $studentScores[] = [
+                    'student_id' => $cStudentId,
+                    'passed' => $cEval['passed'],
+                    'final_gpa' => $cEval['final_gpa'],
+                    'total_marks' => $cMarks->sum('total_mark'),
+                ];
+            }
+
+            usort($studentScores, function ($a, $b) {
+                if ($a['passed'] !== $b['passed']) {
+                    return $b['passed'] <=> $a['passed'];
+                }
+                if ($a['final_gpa'] !== $b['final_gpa']) {
+                    return $b['final_gpa'] <=> $a['final_gpa'];
+                }
+
+                return $b['total_marks'] <=> $a['total_marks'];
+            });
+
+            foreach ($studentScores as $index => $row) {
+                if ($row['student_id'] === $student->id) {
+                    $rank = $index + 1;
+                    break;
+                }
+            }
+        }
+
+        // Get school with proper institutional details (updated via Settings)
+        $school = $student->school
+            ?? School::find($student->school_id)
+            ?? School::find(auth()->user()?->school_id)
+            ?? School::first();
+
+        $pdf = Pdf::loadView('pdf.result_slip', [
+            'school' => $school,
+            'student' => $student,
+            'exam' => $exam,
+            'marks' => $marks,
+            'totalMarksObtained' => round($totalMarksObtained, 2),
+            'finalGpa' => $finalEvaluation['final_gpa'],
+            'finalGrade' => $finalEvaluation['final_grade'],
+            'passed' => $finalEvaluation['passed'],
+            'hasFailedMainSubject' => $finalEvaluation['has_failed_main_subject'],
+            'fourthSubjectBonus' => $finalEvaluation['fourth_subject_bonus'],
+            'totalGradePoints' => $finalEvaluation['total_grade_points'],
+            'rank' => $rank,
+        ])->setPaper('a4', 'portrait');
+
+        $safeName = Str::slug($student->first_name.' '.$student->last_name);
+        $fileName = "Result-Slip-{$safeName}-Roll-{$student->roll_number}.pdf";
+
+        return $pdf->download($fileName);
+    }
+
+    /**
      * Generate complete class tabulation sheet with merit positions (ranks).
      */
     public function tabulationSheet(Request $request, int $examId, int $classLevelId): JsonResponse
@@ -435,7 +542,7 @@ class ExamResultController extends Controller
                 'student_id' => $student->id,
                 'student_code' => $student->student_id,
                 'roll_number' => $student->roll_number,
-                'name' => $student->first_name . ' ' . $student->last_name,
+                'name' => $student->first_name.' '.$student->last_name,
                 'section' => $student->section?->name,
                 'subjects' => $subjectMarksMap,
                 'total_marks' => round($totalMarksSum, 2),
@@ -453,6 +560,7 @@ class ExamResultController extends Controller
             if ($a['final_gpa'] != $b['final_gpa']) {
                 return $b['final_gpa'] <=> $a['final_gpa'];
             }
+
             return $b['total_marks'] <=> $a['total_marks'];
         });
 
@@ -479,4 +587,3 @@ class ExamResultController extends Controller
         }
     }
 }
-

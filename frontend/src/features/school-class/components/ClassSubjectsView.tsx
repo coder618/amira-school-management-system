@@ -693,11 +693,11 @@ export const ClassSubjectsView: React.FC = () => {
                           type="button"
                           onClick={() =>
                             navigate(
-                              `/exams/marks-entry?class_id=${subject.class_level_id}&subject_id=${subject.id}`
+                              `/exams/marks?class_id=${subject.class_level_id}&subject_id=${subject.id}`
                             )
                           }
                           className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors cursor-pointer"
-                          title="Enter student marks for this subject"
+                          title="View & manage student marks for this subject"
                         >
                           <FileSpreadsheet className="h-3.5 w-3.5" />
                           <span className="hidden sm:inline">Marks</span>

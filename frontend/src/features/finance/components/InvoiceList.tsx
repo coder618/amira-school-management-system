@@ -4,7 +4,6 @@ import { CreateInvoiceModal } from './CreateInvoiceModal';
 import { PayInvoiceModal } from './PayInvoiceModal';
 import { InvoiceDetailsModal } from './InvoiceDetailsModal';
 import { CreatePaymentModal } from './CreatePaymentModal';
-import { SettlePaymentModal } from './SettlePaymentModal';
 import { FundCollectionModal } from './FundCollectionModal';
 import { Invoice, Payment, FundCollectionName } from '../types';
 import { formatBdtCurrency } from '../../../shared/utils/validation';
@@ -46,7 +45,6 @@ export const InvoiceList: React.FC = () => {
     totalInvoiceCollected,
     totalInvoiceDue,
     addPayment,
-    settlePayment,
     deletePayment,
     totalBilled,
     totalCollected,
@@ -66,7 +64,6 @@ export const InvoiceList: React.FC = () => {
   const [selectedInvoiceForView, setSelectedInvoiceForView] = useState<Invoice | null>(null);
 
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-  const [selectedPaymentForSettle, setSelectedPaymentForSettle] = useState<Payment | null>(null);
 
   const [isCollectionModalOpen, setIsCollectionModalOpen] = useState(false);
   const [selectedCollectionToEdit, setSelectedCollectionToEdit] = useState<FundCollectionName | null>(null);
@@ -609,15 +606,6 @@ export const InvoiceList: React.FC = () => {
                       </td>
                       <td className="py-3 px-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
-                          {p.status !== 'paid' && Number(p.due_amount) > 0 && (
-                            <button
-                              type="button"
-                              onClick={() => setSelectedPaymentForSettle(p)}
-                              className="px-2 py-1 rounded-md text-[10px] font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200"
-                            >
-                              Settle
-                            </button>
-                          )}
                           <button
                             type="button"
                             onClick={() => handleDeletePayment(p)}
@@ -734,12 +722,6 @@ export const InvoiceList: React.FC = () => {
         onSubmit={addPayment}
         fundCollections={fundCollections}
         students={students}
-      />
-
-      <SettlePaymentModal
-        payment={selectedPaymentForSettle}
-        onClose={() => setSelectedPaymentForSettle(null)}
-        onSubmit={settlePayment}
       />
 
       <FundCollectionModal

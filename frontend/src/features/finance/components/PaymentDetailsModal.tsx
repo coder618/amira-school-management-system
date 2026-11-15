@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Payment } from '../types';
 import { financeApi } from '../api';
 import { formatBdtCurrency } from '../../../shared/utils/validation';
@@ -13,21 +14,21 @@ import {
   Tag,
   FileDown,
   Loader2,
+  Receipt,
 } from 'lucide-react';
 
 interface PaymentDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
   payment: Payment | null;
-  onSettleClick?: (payment: Payment) => void;
 }
 
 export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
   isOpen,
   onClose,
   payment,
-  onSettleClick,
 }) => {
+  const navigate = useNavigate();
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
 
@@ -252,17 +253,18 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
           </button>
 
           <div className="flex items-center gap-2">
-            {payment.status !== 'paid' && Number(payment.due_amount) > 0 && onSettleClick && (
+            {payment.status !== 'paid' && Number(payment.due_amount) > 0 && (
               <button
                 type="button"
                 onClick={() => {
                   onClose();
-                  onSettleClick(payment);
+                  navigate('/finance/invoices');
                 }}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors shadow-sm cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 transition-colors cursor-pointer"
+                title="Pay the remaining due balance through the Invoices module"
               >
-                <CheckCircle className="h-3.5 w-3.5" />
-                <span>Settle Due Balance</span>
+                <Receipt className="h-3.5 w-3.5 text-indigo-600" />
+                <span>Pay via Invoices</span>
               </button>
             )}
             <button

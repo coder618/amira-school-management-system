@@ -33,7 +33,6 @@ export const ROUTES = {
     MANAGE_EXAMS: '/exams/manage',
     EXAM_MARKS: '/exams/marks',
     EXAM_RESULTS: '/exams/results',
-    MARKS_ENTRY: '/exams/marks-entry',
     REPORT_CARDS: '/exams/report-cards',
     SCHEDULE: '/exams/schedule',
   },

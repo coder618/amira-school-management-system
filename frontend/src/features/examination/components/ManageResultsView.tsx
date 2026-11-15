@@ -18,7 +18,6 @@ import {
   Loader2,
   Award,
   RefreshCw,
-  Edit3,
   X,
   Check,
   Trophy,
@@ -508,13 +507,14 @@ export const ManageResultsView: React.FC = () => {
             type="button"
             onClick={() =>
               navigate(
-                `/exams/marks-entry?exam_id=${selectedExamId || ''}&class_id=${selectedClassId || ''}&subject_id=${selectedSubjectId || ''}`
+                `/exams/results?exam_id=${selectedExamId || ''}&class_id=${selectedClassId || ''}`
               )
             }
             className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-xs hover:bg-slate-50 transition-colors cursor-pointer"
+            title="View Exam Results"
           >
-            <Edit3 className="h-4 w-4 text-indigo-600" />
-            <span>Bulk Marks Entry</span>
+            <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
+            <span>Exam Results</span>
           </button>
 
           <button
@@ -702,13 +702,13 @@ export const ManageResultsView: React.FC = () => {
                 type="button"
                 onClick={() =>
                   navigate(
-                    `/exams/marks-entry?exam_id=${selectedExamId || ''}&class_id=${selectedClassId || ''}&subject_id=${selectedSubjectId || ''}`
+                    `/exams/results?exam_id=${selectedExamId || ''}&class_id=${selectedClassId || ''}`
                   )
                 }
                 className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
               >
-                <Edit3 className="h-4 w-4 text-indigo-600" />
-                <span>Bulk Entry Sheet</span>
+                <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
+                <span>Exam Results</span>
               </button>
             </div>
           </div>

@@ -99,6 +99,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/exam-marks', [SchoolExamResultController::class, 'index']);
     Route::post('/exam-marks/bulk', [SchoolExamResultController::class, 'bulkStore']);
     Route::get('/report-cards/{studentId}/exam/{examId}', [SchoolExamResultController::class, 'reportCard']);
+    Route::get('/report-cards/{studentId}/exam/{examId}/pdf', [SchoolExamResultController::class, 'downloadPdf']);
 
     // 6. SchoolExams Module (Tenant-scoped Exam Management)
     Route::apiResource('school-exams', SchoolExamController::class)->parameters(['school-exams' => 'exam']);
@@ -109,6 +110,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('school-exam-results', SchoolExamResultController::class)->parameters(['school-exam-results' => 'examResult']);
     Route::post('/school-exam-results/bulk', [SchoolExamResultController::class, 'bulkStore']);
     Route::get('/school-exam-results/report-card/{studentId}/exam/{examId}', [SchoolExamResultController::class, 'reportCard']);
+    Route::get('/school-exam-results/report-card/{studentId}/exam/{examId}/pdf', [SchoolExamResultController::class, 'downloadPdf']);
     Route::get('/school-exam-results/tabulation/{examId}/class/{classLevelId}', [SchoolExamResultController::class, 'tabulationSheet']);
 
     // 8. User Notifications Module (Read, Unread, Soft Delete, Restore)

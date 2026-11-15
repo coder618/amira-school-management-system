@@ -1,14 +1,12 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useFinance } from '../hooks/useFinance';
-import { CreatePaymentModal } from './CreatePaymentModal';
 import { EditPaymentModal } from './EditPaymentModal';
-import { SettlePaymentModal } from './SettlePaymentModal';
 import { PaymentDetailsModal } from './PaymentDetailsModal';
 import { Payment } from '../types';
 import { formatBdtCurrency } from '../../../shared/utils/validation';
 import {
   CreditCard,
-  Plus,
   TrendingUp,
   AlertCircle,
   Receipt,
@@ -21,10 +19,10 @@ import {
 } from 'lucide-react';
 
 export const PaymentsView: React.FC = () => {
+  const navigate = useNavigate();
   const {
     payments,
     fundCollections,
-    students,
     loading,
     error,
     statusFilter,
@@ -33,9 +31,7 @@ export const PaymentsView: React.FC = () => {
     setCollectionFilter,
     searchQuery,
     setSearchQuery,
-    addPayment,
     updatePayment,
-    settlePayment,
     deletePayment,
     totalBilled,
     totalCollected,
@@ -44,9 +40,7 @@ export const PaymentsView: React.FC = () => {
   } = useFinance();
 
   // Modals state
-  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [selectedPaymentForEdit, setSelectedPaymentForEdit] = useState<Payment | null>(null);
-  const [selectedPaymentForSettle, setSelectedPaymentForSettle] = useState<Payment | null>(null);
   const [selectedPaymentForView, setSelectedPaymentForView] = useState<Payment | null>(null);
 
   const getPaymentStatusBadge = (status: Payment['status']) => {
@@ -81,18 +75,18 @@ export const PaymentsView: React.FC = () => {
             Payments Module
           </h1>
           <p className="text-xs sm:text-sm text-slate-500">
-            Official transaction slips, payment gateway receipts, and fee settlements
+            Official transaction slips, payment gateway receipts, and verified records
           </p>
         </div>
 
         <div className="flex items-center gap-2.5 flex-wrap">
           <button
             type="button"
-            onClick={() => setIsPaymentModalOpen(true)}
+            onClick={() => navigate('/finance/invoices')}
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-xs font-semibold text-white shadow-md shadow-indigo-600/20 hover:bg-indigo-700 transition-all cursor-pointer"
           >
-            <Plus className="h-4 w-4" />
-            <span>Record Direct Payment</span>
+            <Receipt className="h-4 w-4" />
+            <span>Pay via Invoices</span>
           </button>
         </div>
       </div>
@@ -225,15 +219,15 @@ export const PaymentsView: React.FC = () => {
           <div>
             <h3 className="text-sm font-bold text-slate-900">Payments Module Ledger</h3>
             <p className="text-xs text-slate-500">
-              Official transaction slips, gateway collections, and fee settlements
+              Official transaction slips and payment transaction records
             </p>
           </div>
           <button
-            onClick={() => setIsPaymentModalOpen(true)}
-            className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 flex items-center gap-1 cursor-pointer"
+            onClick={() => navigate('/finance/invoices')}
+            className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 flex items-center gap-1.5 cursor-pointer bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg border border-indigo-100 transition-colors"
           >
-            <Plus className="h-3.5 w-3.5" />
-            <span>Record Direct Payment</span>
+            <Receipt className="h-3.5 w-3.5" />
+            <span>Pay via Invoices</span>
           </button>
         </div>
 
@@ -267,15 +261,15 @@ export const PaymentsView: React.FC = () => {
                     <CreditCard className="h-8 w-8 text-slate-300 mx-auto mb-2" />
                     <p className="font-semibold text-slate-700">No payment records found</p>
                     <p className="text-xs text-slate-400">
-                      Payments will appear here when recorded or when invoices are paid.
+                      Payment records will automatically appear here when invoices are paid.
                     </p>
                     <button
                       type="button"
-                      onClick={() => setIsPaymentModalOpen(true)}
+                      onClick={() => navigate('/finance/invoices')}
                       className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 shadow-xs cursor-pointer"
                     >
-                      <Plus className="h-3.5 w-3.5" />
-                      <span>Record First Payment</span>
+                      <Receipt className="h-3.5 w-3.5" />
+                      <span>Go to Invoices</span>
                     </button>
                   </td>
                 </tr>
@@ -325,16 +319,6 @@ export const PaymentsView: React.FC = () => {
                     </td>
                     <td className="py-3 px-4 text-right">
                       <div className="flex items-center justify-end gap-1.5">
-                        {p.status !== 'paid' && Number(p.due_amount) > 0 && (
-                          <button
-                            type="button"
-                            onClick={() => setSelectedPaymentForSettle(p)}
-                            className="px-2 py-1 rounded-md text-[10px] font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 cursor-pointer"
-                            title="Settle due balance"
-                          >
-                            Settle
-                          </button>
-                        )}
                         <button
                           type="button"
                           onClick={() => setSelectedPaymentForView(p)}
@@ -370,14 +354,6 @@ export const PaymentsView: React.FC = () => {
       </div>
 
       {/* Modals */}
-      <CreatePaymentModal
-        isOpen={isPaymentModalOpen}
-        onClose={() => setIsPaymentModalOpen(false)}
-        onSubmit={addPayment}
-        fundCollections={fundCollections}
-        students={students}
-      />
-
       <EditPaymentModal
         isOpen={!!selectedPaymentForEdit}
         onClose={() => setSelectedPaymentForEdit(null)}
@@ -386,17 +362,10 @@ export const PaymentsView: React.FC = () => {
         fundCollections={fundCollections}
       />
 
-      <SettlePaymentModal
-        payment={selectedPaymentForSettle}
-        onClose={() => setSelectedPaymentForSettle(null)}
-        onSubmit={settlePayment}
-      />
-
       <PaymentDetailsModal
         isOpen={!!selectedPaymentForView}
         onClose={() => setSelectedPaymentForView(null)}
         payment={selectedPaymentForView}
-        onSettleClick={(p) => setSelectedPaymentForSettle(p)}
       />
     </div>
   );

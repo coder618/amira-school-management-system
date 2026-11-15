@@ -5,11 +5,11 @@ namespace Tests\Feature;
 use App\Modules\Academic\Models\ClassLevel;
 use App\Modules\Academic\Models\Section;
 use App\Modules\Academic\Models\Student;
+use App\Modules\Academic\Models\Subject;
 use App\Modules\Core\Enums\Role;
 use App\Modules\Core\Models\AcademicYear;
 use App\Modules\Core\Models\School;
 use App\Modules\Core\Models\User;
-use App\Modules\Academic\Models\Subject;
 use App\Modules\SchoolExamResults\Models\ExamResult;
 use App\Modules\SchoolExams\Models\Exam;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -20,15 +20,25 @@ class SchoolExamsAndResultsTest extends TestCase
     use RefreshDatabase;
 
     protected School $schoolA;
+
     protected School $schoolB;
+
     protected User $adminA;
+
     protected User $adminB;
+
     protected AcademicYear $yearA;
+
     protected AcademicYear $yearB;
+
     protected ClassLevel $classA;
+
     protected Section $sectionA;
+
     protected Subject $mathA;
+
     protected Subject $bioA;
+
     protected Student $studentA;
 
     protected function setUp(): void
@@ -468,8 +478,8 @@ class SchoolExamsAndResultsTest extends TestCase
             'class_level',
             'subjects',
             'tabulation' => [
-                '*' => ['student_id', 'name', 'roll_number', 'total_marks', 'final_gpa', 'final_grade', 'passed', 'rank']
-            ]
+                '*' => ['student_id', 'name', 'roll_number', 'total_marks', 'final_gpa', 'final_grade', 'passed', 'rank'],
+            ],
         ]);
         $response->assertJsonPath('tabulation.0.rank', 1);
         $response->assertJsonPath('tabulation.0.final_gpa', 5);
@@ -578,5 +588,39 @@ class SchoolExamsAndResultsTest extends TestCase
             'total_mark' => 92.75,
             'note' => 'Re-checked and bonus mark added.',
         ]);
+    }
+
+    public function test_download_report_card_pdf_generates_valid_pdf_with_school_info(): void
+    {
+        $exam = Exam::create([
+            'school_id' => $this->schoolA->id,
+            'academic_year_id' => $this->yearA->id,
+            'name' => 'Final Examination 2026',
+            'term' => 'Annual',
+            'is_published' => true,
+        ]);
+
+        ExamResult::create([
+            'school_id' => $this->schoolA->id,
+            'academic_year_id' => $this->yearA->id,
+            'exam_id' => $exam->id,
+            'student_id' => $this->studentA->id,
+            'subject_id' => $this->mathA->id,
+            'subjective_mark' => 60,
+            'objective_mark' => 25,
+            'practical_mark' => 0,
+            'total_mark' => 85,
+            'gpa' => 5.00,
+            'grade' => 'A+',
+            'is_4th_subject' => false,
+        ]);
+
+        $response = $this->actingAs($this->adminA)
+            ->withHeaders(['X-School-Id' => $this->schoolA->id])
+            ->get("/api/school-exam-results/report-card/{$this->studentA->id}/exam/{$exam->id}/pdf");
+
+        $response->assertStatus(200);
+        $this->assertEquals('application/pdf', $response->headers->get('Content-Type'));
+        $this->assertStringContainsString('Result-Slip-', $response->headers->get('Content-Disposition'));
     }
 }

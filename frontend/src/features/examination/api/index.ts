@@ -21,5 +21,20 @@ export const examinationApi = {
     const res = await apiClient.get<StudentReportCard>(`/report-cards/${studentId}/exam/${examId}`);
     return res.data;
   },
+
+  downloadStudentReportCardPdf: async (studentId: number, examId: number, filename?: string): Promise<void> => {
+    const res = await apiClient.get(`/school-exam-results/report-card/${studentId}/exam/${examId}/pdf`, {
+      responseType: 'blob',
+    });
+    const blob = new Blob([res.data], { type: 'application/pdf' });
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = filename || `Result-Slip-Student-${studentId}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(downloadUrl);
+  },
 };
 

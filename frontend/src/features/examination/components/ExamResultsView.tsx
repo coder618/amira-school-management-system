@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { schoolExamsApi, schoolExamResultsApi } from '../../../services/api';
+import { schoolExamsApi, schoolExamResultsApi, schoolApi } from '../../../services/api';
 import { academicApi } from '../../academic/api';
 import { examinationApi } from '../api';
-import { SchoolExam, TabulationData } from '../../../types';
+import { SchoolExam, TabulationData, School } from '../../../types';
 import { ClassLevel, Student } from '../../academic/types';
 import { Subject, StudentReportCard, NctbGrade } from '../types';
 import { ReportCardModal } from './ReportCardModal';
@@ -20,6 +20,8 @@ import {
   Loader2,
   RefreshCw,
   Printer,
+  Download,
+  Building2,
   X,
   Check,
   Eye,
@@ -79,6 +81,13 @@ export const ExamResultsView: React.FC = () => {
   const [detailsStudentId, setDetailsStudentId] = useState<number | null>(null);
   const [activeReportCard, setActiveReportCard] = useState<StudentReportCard | null>(null);
   const [loadingTranscriptId, setLoadingTranscriptId] = useState<number | null>(null);
+  const [school, setSchool] = useState<School | null>(null);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
+
+  // Load current school info for professional print/result slip
+  useEffect(() => {
+    schoolApi.getCurrent().then(setSchool).catch(() => {});
+  }, []);
 
   // Load initial dropdowns (Exams & Classes)
   useEffect(() => {
@@ -377,6 +386,29 @@ export const ExamResultsView: React.FC = () => {
     return tabulationData.tabulation.find((r) => r.student_id === detailsStudentId) || null;
   }, [detailsStudentId, tabulationData]);
 
+  const selectedExam = useMemo(() => {
+    return exams.find((e) => e.id === selectedExamId) || null;
+  }, [exams, selectedExamId]);
+
+  const handleDownloadPdf = async () => {
+    if (!selectedRowForDetails || !selectedExamId) return;
+    setIsDownloadingPdf(true);
+    try {
+      const studentName = selectedRowForDetails.name.replace(/\s+/g, '-');
+      const filename = `Result-Slip-${studentName}-Roll-${selectedRowForDetails.roll_number}.pdf`;
+      await schoolExamResultsApi.downloadReportCardPdf(
+        selectedRowForDetails.student_id,
+        selectedExamId,
+        filename
+      );
+    } catch (err) {
+      console.error('Failed to download result slip PDF', err);
+      alert('Failed to generate PDF. Please try again.');
+    } finally {
+      setIsDownloadingPdf(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Top Header */}
@@ -638,14 +670,6 @@ export const ExamResultsView: React.FC = () => {
               >
                 <Plus className="h-4 w-4" />
                 <span>Record Student Result</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate('/exams/marks-entry')}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
-              >
-                <FileSpreadsheet className="h-4 w-4 text-indigo-600" />
-                <span>Bulk Entry Sheet</span>
               </button>
             </div>
           </div>
@@ -1099,11 +1123,17 @@ export const ExamResultsView: React.FC = () => {
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => window.print()}
-                  className="p-1.5 text-slate-500 hover:text-indigo-600 rounded-lg hover:bg-slate-200/60 transition-colors"
-                  title="Print Result Slip"
+                  onClick={handleDownloadPdf}
+                  disabled={isDownloadingPdf}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-60 cursor-pointer"
+                  title="Download Official PDF Result Slip"
                 >
-                  <Printer className="h-4 w-4" />
+                  {isDownloadingPdf ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Download className="h-3.5 w-3.5" />
+                  )}
+                  <span>{isDownloadingPdf ? 'Generating PDF...' : 'Download PDF'}</span>
                 </button>
                 <button
                   type="button"
@@ -1116,6 +1146,96 @@ export const ExamResultsView: React.FC = () => {
             </div>
 
             <div className="p-6 overflow-y-auto space-y-4">
+              {/* Official Institutional School Information Header */}
+              <div className="rounded-xl border border-blue-200/90 bg-gradient-to-r from-blue-50/80 via-indigo-50/40 to-slate-50 p-4 border-b-2 border-b-blue-600">
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                  <div>
+                    <h4 className="text-base font-bold text-blue-900 tracking-tight flex items-center gap-1.5">
+                      <Building2 className="h-4 w-4 text-blue-700 shrink-0" />
+                      {school?.name || 'EduCore Model High School & College'}
+                    </h4>
+                    <div className="text-[11px] text-slate-600 mt-1 flex flex-wrap items-center gap-x-2">
+                      {school?.eiin && (
+                        <span>
+                          <strong>EIIN:</strong> {school.eiin}
+                        </span>
+                      )}
+                      {school?.code && (
+                        <>
+                          <span className="text-slate-300">|</span>
+                          <span>
+                            <strong>Code:</strong> {school.code}
+                          </span>
+                        </>
+                      )}
+                      {school?.board && (
+                        <>
+                          <span className="text-slate-300">|</span>
+                          <span>
+                            <strong>Board:</strong> {school.board}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                    <div className="text-[11px] text-slate-500 mt-0.5 flex flex-wrap items-center gap-x-2">
+                      {school?.address && <span>{school.address}</span>}
+                      {school?.phone && (
+                        <>
+                          <span className="text-slate-300">•</span>
+                          <span>
+                            <strong>Tel:</strong> {school.phone}
+                          </span>
+                        </>
+                      )}
+                      {school?.email && (
+                        <>
+                          <span className="text-slate-300">•</span>
+                          <span>
+                            <strong>Email:</strong> {school.email}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  <div className="sm:text-right shrink-0">
+                    <span className="inline-block rounded-md bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-0.5 uppercase tracking-wider">
+                      Academic Transcript
+                    </span>
+                    <div className="text-xs font-bold text-slate-800 mt-0.5">
+                      {selectedExam?.name || 'School Examination'}
+                    </div>
+                    <div className="text-[10px] text-slate-500">
+                      Term: {selectedExam?.term || 'Annual'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Student Credentials Summary Strip */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 rounded-lg border border-slate-200 bg-slate-50/70 p-3 text-xs">
+                <div>
+                  <span className="text-[10px] uppercase font-semibold text-slate-400 block">Student Code</span>
+                  <span className="font-mono font-bold text-slate-800">{selectedRowForDetails.student_code || '—'}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-semibold text-slate-400 block">Class & Section</span>
+                  <span className="font-semibold text-slate-800">
+                    {classLevels.find((c) => c.id === selectedClassId)?.name || 'Class'}
+                    {selectedRowForDetails.section ? ` (${selectedRowForDetails.section})` : ''}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-semibold text-slate-400 block">Roll Number</span>
+                  <span className="font-mono font-bold text-indigo-700">#{selectedRowForDetails.roll_number}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-semibold text-slate-400 block">Merit Position</span>
+                  <span className="font-mono font-bold text-amber-600">
+                    {selectedRowForDetails.rank ? `Rank #${selectedRowForDetails.rank}` : '—'}
+                  </span>
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs">
                 <div>
                   <span className="text-slate-400 font-semibold block">Total Marks</span>
@@ -1206,6 +1326,27 @@ export const ExamResultsView: React.FC = () => {
                   </tbody>
                 </table>
               </div>
+            </div>
+
+            {/* Modal Bottom Action Bar */}
+            <div className="border-t border-slate-100 px-6 py-3.5 bg-slate-50 flex items-center justify-between text-xs">
+              <span className="text-slate-500 text-[11px] flex items-center gap-1.5">
+                <Building2 className="h-3.5 w-3.5 text-slate-400" />
+                Verified electronic transcript issued by {school?.name || 'School Authority'}
+              </span>
+              <button
+                type="button"
+                onClick={handleDownloadPdf}
+                disabled={isDownloadingPdf}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-60 cursor-pointer"
+              >
+                {isDownloadingPdf ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Download className="h-3.5 w-3.5" />
+                )}
+                <span>{isDownloadingPdf ? 'Generating PDF...' : 'Download Official PDF'}</span>
+              </button>
             </div>
           </div>
         </div>
