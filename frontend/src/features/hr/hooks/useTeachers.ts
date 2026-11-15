@@ -40,8 +40,14 @@ export const useTeachers = () => {
     fetchTeachers();
   }, [fetchTeachers]);
 
-  const addTeacher = async (payload: TeacherPayload) => {
+  const addTeacher = async (payload: TeacherPayload | FormData) => {
     const res = await hrApi.createTeacher(payload);
+    await fetchTeachers();
+    return res;
+  };
+
+  const updateTeacher = async (id: number, payload: Partial<TeacherPayload> | FormData) => {
+    const res = await hrApi.updateTeacher(id, payload);
     await fetchTeachers();
     return res;
   };
@@ -61,6 +67,7 @@ export const useTeachers = () => {
     setDepartment,
     fetchTeachers,
     addTeacher,
+    updateTeacher,
     removeTeacher,
   };
 };

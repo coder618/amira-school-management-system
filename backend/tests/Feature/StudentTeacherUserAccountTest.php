@@ -12,6 +12,8 @@ use App\Modules\Core\Models\School;
 use App\Modules\Core\Models\User;
 use App\Modules\HR\Models\Teacher;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class StudentTeacherUserAccountTest extends TestCase
@@ -159,6 +161,108 @@ class StudentTeacherUserAccountTest extends TestCase
         $this->assertEquals('Md. Rafiqul Islam', $user->name);
         $this->assertEquals(Role::Teacher->value, $user->role);
         $this->assertEquals($this->school->id, $user->school_id);
+    }
+
+    public function test_recruiting_teacher_with_profile_picture_saves_media_and_picture_url(): void
+    {
+        Storage::fake('public');
+
+        $image = UploadedFile::fake()->image('teacher_avatar.jpg', 300, 300);
+
+        $response = $this->actingAs($this->adminUser, 'sanctum')
+            ->post('/api/teachers', [
+                'name' => 'Nusrat Jahan',
+                'email' => 'nusrat.jahan@school.edu.bd',
+                'employee_id' => 'EMP-888',
+                'designation' => 'Assistant Teacher (English)',
+                'department' => 'Language',
+                'qualification' => 'M.A in English (DU)',
+                'phone_number' => '01811223399',
+                'profile_picture' => $image,
+            ]);
+
+        $response->assertStatus(201);
+        $teacherData = $response->json('data');
+
+        $user = User::find($teacherData['user_id']);
+        $this->assertNotNull($user->profile_picture);
+        $this->assertNotNull($user->profile_picture_url);
+        Storage::disk('public')->assertExists($user->profile_picture);
+    }
+
+    public function test_non_admin_cannot_perform_teacher_crud(): void
+    {
+        $teacherUser = User::create([
+            'school_id' => $this->school->id,
+            'name' => 'Regular Teacher',
+            'email' => 'regular.teacher@school.edu.bd',
+            'password' => 'password123',
+            'role' => Role::Teacher->value,
+            'is_active' => true,
+        ]);
+
+        $teacher = Teacher::create([
+            'school_id' => $this->school->id,
+            'user_id' => $teacherUser->id,
+            'employee_id' => 'EMP-T1',
+            'designation' => 'Assistant Teacher',
+            'department' => 'Science',
+        ]);
+
+        // Attempt Create as Teacher -> 403
+        $this->actingAs($teacherUser, 'sanctum')
+            ->postJson('/api/teachers', [
+                'name' => 'Illegal Faculty',
+                'email' => 'illegal@school.edu.bd',
+                'employee_id' => 'EMP-999',
+                'designation' => 'Assistant Teacher',
+            ])
+            ->assertStatus(403);
+
+        // Attempt Update as Teacher -> 403
+        $this->actingAs($teacherUser, 'sanctum')
+            ->putJson("/api/teachers/{$teacher->id}", [
+                'name' => 'Hacked Name',
+            ])
+            ->assertStatus(403);
+
+        // Attempt Delete as Teacher -> 403
+        $this->actingAs($teacherUser, 'sanctum')
+            ->deleteJson("/api/teachers/{$teacher->id}")
+            ->assertStatus(403);
+    }
+
+    public function test_admin_can_update_teacher(): void
+    {
+        $teacherUser = User::create([
+            'school_id' => $this->school->id,
+            'name' => 'Original Name',
+            'email' => 'orig.teacher@school.edu.bd',
+            'password' => 'password123',
+            'role' => Role::Teacher->value,
+            'is_active' => true,
+        ]);
+
+        $teacher = Teacher::create([
+            'school_id' => $this->school->id,
+            'user_id' => $teacherUser->id,
+            'employee_id' => 'EMP-ORIG',
+            'designation' => 'Assistant Teacher',
+            'department' => 'Science',
+        ]);
+
+        $response = $this->actingAs($this->adminUser, 'sanctum')
+            ->putJson("/api/teachers/{$teacher->id}", [
+                'name' => 'Updated Faculty Name',
+                'designation' => 'Head of Science',
+                'department' => 'Science',
+                'qualification' => 'Ph.D in Physics',
+            ]);
+
+        $response->assertStatus(200);
+        $this->assertEquals('Updated Faculty Name', $teacher->fresh()->user->name);
+        $this->assertEquals('Head of Science', $teacher->fresh()->designation);
+        $this->assertEquals('Ph.D in Physics', $teacher->fresh()->qualification);
     }
 
     public function test_deleting_student_removes_student_user(): void

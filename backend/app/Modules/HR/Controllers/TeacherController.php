@@ -9,6 +9,7 @@ use App\Modules\Core\Models\User;
 use App\Modules\HR\Models\Teacher;
 use App\Modules\HR\Requests\StoreTeacherRequest;
 use App\Modules\HR\Requests\UpdateTeacherRequest;
+use App\Modules\Media\Services\MediaService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -16,6 +17,13 @@ use Illuminate\Support\Facades\Hash;
 
 class TeacherController extends Controller
 {
+    protected MediaService $mediaService;
+
+    public function __construct(MediaService $mediaService)
+    {
+        $this->mediaService = $mediaService;
+    }
+
     public function index(Request $request): JsonResponse
     {
         $query = Teacher::with(['user', 'assignedSections.classLevel'])
@@ -45,13 +53,39 @@ class TeacherController extends Controller
 
     public function store(StoreTeacherRequest $request): JsonResponse
     {
+        $user = $request->user();
+        if (! $this->isAdminUser($user)) {
+            return response()->json([
+                'message' => 'Unauthorized. Only users with the Admin role can recruit faculty members.',
+            ], 403);
+        }
+
         $validated = $request->validated();
 
         $schoolId = auth()->user()?->school_id
             ?? ($request->hasHeader('X-School-Id') ? (int) $request->header('X-School-Id') : null)
             ?? School::first()?->id;
 
-        $teacher = DB::transaction(function () use ($validated, $schoolId) {
+        $profilePicturePath = null;
+        $uploadedMedia = null;
+        $imageKey = $request->hasFile('profile_picture') ? 'profile_picture' : ($request->hasFile('image') ? 'image' : null);
+
+        if ($imageKey) {
+            $media = $this->mediaService->upload(
+                file: $request->file($imageKey),
+                schoolId: $schoolId,
+                collectionName: 'teacher_profiles',
+                userId: auth()->id()
+            );
+            $profilePicturePath = $media->file_path;
+            $uploadedMedia = $media;
+        } elseif ($request->filled('profile_picture')) {
+            $profilePicturePath = $request->input('profile_picture');
+        } elseif ($request->filled('image')) {
+            $profilePicturePath = $request->input('image');
+        }
+
+        $teacher = DB::transaction(function () use ($validated, $schoolId, $profilePicturePath, $uploadedMedia) {
             $user = User::create([
                 'school_id' => $schoolId,
                 'name' => $validated['name'],
@@ -59,9 +93,10 @@ class TeacherController extends Controller
                 'password' => Hash::make($validated['password'] ?? 'teacher123'),
                 'role' => Role::Teacher->value,
                 'phone_number' => $validated['phone_number'] ?? null,
+                'profile_picture' => $profilePicturePath,
             ]);
 
-            return Teacher::create([
+            $newTeacher = Teacher::create([
                 'school_id' => $schoolId,
                 'user_id' => $user->id,
                 'employee_id' => $validated['employee_id'],
@@ -71,6 +106,15 @@ class TeacherController extends Controller
                 'phone_number' => $validated['phone_number'] ?? null,
                 'joining_date' => $validated['joining_date'] ?? now()->toDateString(),
             ]);
+
+            if ($uploadedMedia) {
+                $uploadedMedia->update([
+                    'model_type' => Teacher::class,
+                    'model_id' => $newTeacher->id,
+                ]);
+            }
+
+            return $newTeacher;
         });
 
         $teacher->load(['user', 'assignedSections']);
@@ -90,16 +134,65 @@ class TeacherController extends Controller
 
     public function update(UpdateTeacherRequest $request, Teacher $teacher): JsonResponse
     {
+        $user = $request->user();
+        if (! $this->isAdminUser($user)) {
+            return response()->json([
+                'message' => 'Unauthorized. Only users with the Admin role can update faculty records.',
+            ], 403);
+        }
+
         $validated = $request->validated();
 
-        DB::transaction(function () use ($teacher, $validated) {
+        $schoolId = $teacher->school_id;
+        $profilePicturePath = null;
+        $uploadedMedia = null;
+        $imageKey = $request->hasFile('profile_picture') ? 'profile_picture' : ($request->hasFile('image') ? 'image' : null);
+
+        if ($imageKey) {
+            $media = $this->mediaService->upload(
+                file: $request->file($imageKey),
+                schoolId: $schoolId,
+                collectionName: 'teacher_profiles',
+                userId: auth()->id()
+            );
+            $profilePicturePath = $media->file_path;
+            $uploadedMedia = $media;
+        } elseif ($request->filled('profile_picture')) {
+            $profilePicturePath = $request->input('profile_picture');
+        } elseif ($request->filled('image')) {
+            $profilePicturePath = $request->input('image');
+        }
+
+        DB::transaction(function () use ($teacher, $validated, $profilePicturePath, $uploadedMedia) {
+            $userUpdates = [];
             if (isset($validated['name'])) {
-                $teacher->user()->update([
-                    'name' => $validated['name'],
-                    'phone_number' => $validated['phone_number'] ?? $teacher->phone_number,
+                $userUpdates['name'] = $validated['name'];
+            }
+            if (isset($validated['email'])) {
+                $userUpdates['email'] = $validated['email'];
+            }
+            if (!empty($validated['password'])) {
+                $userUpdates['password'] = Hash::make($validated['password']);
+            }
+            if (isset($validated['phone_number'])) {
+                $userUpdates['phone_number'] = $validated['phone_number'];
+            }
+            if ($profilePicturePath !== null) {
+                $userUpdates['profile_picture'] = $profilePicturePath;
+            }
+
+            if (!empty($userUpdates) && $teacher->user) {
+                $teacher->user()->update($userUpdates);
+            }
+
+            $teacher->update($validated);
+
+            if ($uploadedMedia) {
+                $uploadedMedia->update([
+                    'model_type' => Teacher::class,
+                    'model_id' => $teacher->id,
                 ]);
             }
-            $teacher->update($validated);
         });
 
         $teacher->load(['user', 'assignedSections']);
@@ -112,6 +205,13 @@ class TeacherController extends Controller
 
     public function destroy(Teacher $teacher): JsonResponse
     {
+        $user = request()->user();
+        if (! $this->isAdminUser($user)) {
+            return response()->json([
+                'message' => 'Unauthorized. Only users with the Admin role can remove faculty records.',
+            ], 403);
+        }
+
         DB::transaction(function () use ($teacher) {
             $user = $teacher->user;
             $teacher->delete();
@@ -123,6 +223,22 @@ class TeacherController extends Controller
         return response()->json([
             'message' => 'Teacher profile removed',
         ]);
+    }
+
+    /**
+     * Check if user has admin privileges.
+     */
+    protected function isAdminUser(?User $user): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        $role = strtolower((string) $user->role);
+
+        return in_array($role, ['admin', 'superadmin'], true)
+            || (method_exists($user, 'isAdmin') && $user->isAdmin())
+            || (method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin());
     }
 }
 

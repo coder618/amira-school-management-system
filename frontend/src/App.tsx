@@ -13,6 +13,9 @@ import { EditStudentPage } from './pages/EditStudentPage';
 import { Classes } from './pages/Classes';
 import { ClassSubjectsPage } from './pages/ClassSubjectsPage';
 import { Teachers } from './pages/Teachers';
+import { AddTeacherPage } from './pages/AddTeacherPage';
+import { TeacherProfilePage } from './pages/TeacherProfilePage';
+import { EditTeacherPage } from './pages/EditTeacherPage';
 import { Attendance } from './pages/Attendance';
 import { Finance } from './pages/Finance';
 import { FinanceInvoices } from './pages/FinanceInvoices';
@@ -49,6 +52,11 @@ export const App: React.FC = () => {
               <Route path="/classes/manage" element={<Classes />} />
               <Route path="/classes/subjects" element={<ClassSubjectsPage />} />
               <Route path="/teachers" element={<Teachers />} />
+              <Route path="/teachers/list" element={<Navigate to="/teachers" replace />} />
+              <Route path="/teachers/create" element={<AddTeacherPage />} />
+              <Route path="/teachers/add" element={<AddTeacherPage />} />
+              <Route path="/teachers/:id" element={<TeacherProfilePage />} />
+              <Route path="/teachers/:id/edit" element={<EditTeacherPage />} />
               <Route path="/attendance" element={<Attendance />} />
               <Route path="/finance" element={<Finance />} />
               <Route path="/finance/invoices" element={<FinanceInvoices />} />

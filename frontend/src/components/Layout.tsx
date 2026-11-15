@@ -75,12 +75,14 @@ export const Layout: React.FC = () => {
 
   const isStudentsActive = location.pathname.startsWith('/students');
   const isClassesActive = location.pathname.startsWith('/classes');
+  const isTeachersActive = location.pathname.startsWith('/teachers');
   const isFinanceActive = location.pathname.startsWith('/finance');
   const isExamsActive = location.pathname.startsWith('/exams');
 
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({
     '/students': isStudentsActive,
     '/classes': isClassesActive,
+    '/teachers': isTeachersActive,
     '/finance': isFinanceActive,
     '/exams': isExamsActive,
   });
@@ -92,13 +94,16 @@ export const Layout: React.FC = () => {
     if (isClassesActive) {
       setOpenMenus((prev) => ({ ...prev, '/classes': true }));
     }
+    if (isTeachersActive) {
+      setOpenMenus((prev) => ({ ...prev, '/teachers': true }));
+    }
     if (isFinanceActive) {
       setOpenMenus((prev) => ({ ...prev, '/finance': true }));
     }
     if (isExamsActive) {
       setOpenMenus((prev) => ({ ...prev, '/exams': true }));
     }
-  }, [isStudentsActive, isClassesActive, isFinanceActive, isExamsActive]);
+  }, [isStudentsActive, isClassesActive, isTeachersActive, isFinanceActive, isExamsActive]);
 
   const toggleSubmenu = (menuPath: string) => {
     setOpenMenus((prev) => ({
@@ -130,7 +135,17 @@ export const Layout: React.FC = () => {
         { label: 'Class Subjects', path: '/classes/subjects', icon: BookOpen },
       ],
     },
-    { label: 'Teachers & HR', path: '/teachers', icon: Users },
+    {
+      label: 'Teachers & HR',
+      path: '/teachers',
+      icon: Users,
+      children: [
+        { label: 'List All', path: '/teachers', icon: List },
+        ...((user?.role === 'Admin' || user?.role === 'SuperAdmin')
+          ? [{ label: 'Add new', path: '/teachers/create', icon: UserPlus }]
+          : []),
+      ],
+    },
     { label: 'Attendance', path: '/attendance', icon: CalendarCheck },
     {
       label: 'Finance & Fees',
@@ -203,7 +218,7 @@ export const Layout: React.FC = () => {
               const isChildActive = item.children.some(
                 (c) =>
                   location.pathname === c.path ||
-                  (c.path !== '/students' && location.pathname.startsWith(c.path))
+                  (c.path !== '/students' && c.path !== '/teachers' && location.pathname.startsWith(c.path))
               );
 
               const isOpen = Boolean(openMenus[item.path]);
@@ -236,7 +251,7 @@ export const Layout: React.FC = () => {
                           <NavLink
                             key={sub.path}
                             to={sub.path}
-                            end={sub.path === '/students'}
+                            end={sub.path === '/students' || sub.path === '/teachers'}
                             onClick={() => setMobileMenuOpen(false)}
                             className={({ isActive }) =>
                               `flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${isActive

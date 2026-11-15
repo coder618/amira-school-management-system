@@ -326,7 +326,7 @@ export const ClassList: React.FC = () => {
         </div>
       )}
 
-      {/* Class Cards Grid */}
+      {/* Class Presentation Table (List View Only) */}
       {loading ? (
         <div className="flex flex-col items-center justify-center p-12 text-slate-500 gap-3">
           <Loader2 className="h-7 w-7 animate-spin text-indigo-600" />
@@ -353,76 +353,111 @@ export const ClassList: React.FC = () => {
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {classes.map((cls) => (
-            <div
-              key={cls.id}
-              className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs hover:shadow-md transition-shadow flex flex-col justify-between"
-            >
-              <div>
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-700 font-bold text-base shadow-xs">
-                      {cls.numeric_value ?? '•'}
-                    </div>
-                    <div>
-                      <h3 className="text-base font-bold text-slate-900">{cls.name}</h3>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        {cls.code && (
-                          <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-mono font-semibold text-slate-600">
-                            {cls.code}
+        <div className="rounded-2xl border border-slate-200 bg-white shadow-xs overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-slate-50/80 border-b border-slate-200 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                <tr>
+                  <th className="py-3 px-4">Class Level</th>
+                  <th className="py-3 px-4">Code</th>
+                  <th className="py-3 px-4">Numeric Grade</th>
+                  <th className="py-3 px-4">Enrolled Students</th>
+                  <th className="py-3 px-4">Scope</th>
+                  <th className="py-3 px-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {classes.map((cls) => (
+                  <tr key={cls.id} className="hover:bg-slate-50/70 transition-colors">
+                    {/* Class Level & Grade Icon */}
+                    <td className="py-3.5 px-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-700 font-bold text-sm border border-indigo-100 shrink-0">
+                          {cls.numeric_value ?? '•'}
+                        </div>
+                        <div>
+                          <div className="font-bold text-slate-900">{cls.name}</div>
+                          <span className="text-xs text-slate-400">
+                            Grade {cls.numeric_value ?? 'N/A'}
                           </span>
-                        )}
-                        <span className="text-[11px] text-slate-400">
-                          Grade {cls.numeric_value ?? 'N/A'}
-                        </span>
+                        </div>
                       </div>
-                    </div>
-                  </div>
+                    </td>
 
-                  <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-medium text-emerald-700 border border-emerald-200/60">
-                    Tenant Isolated
-                  </span>
-                </div>
-              </div>
+                    {/* Code */}
+                    <td className="py-3.5 px-4">
+                      {cls.code ? (
+                        <span className="font-mono text-xs font-semibold bg-slate-100 text-slate-700 px-2 py-0.5 rounded border border-slate-200">
+                          {cls.code}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-slate-400 italic">—</span>
+                      )}
+                    </td>
 
-              {/* Card Footer */}
-              <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between">
-                <div className="flex items-center gap-1 text-xs text-slate-600 font-medium">
-                  <Users className="h-3.5 w-3.5 text-indigo-500" />
-                  <span>{cls.students_count ?? 0} Enrolled Students</span>
-                </div>
+                    {/* Numeric Grade */}
+                    <td className="py-3.5 px-4 font-mono text-slate-700 text-xs font-medium">
+                      {cls.numeric_value !== null && cls.numeric_value !== undefined ? (
+                        <span className="inline-flex items-center gap-1">
+                          <Layers className="h-3.5 w-3.5 text-indigo-500" />
+                          <span>Grade {cls.numeric_value}</span>
+                        </span>
+                      ) : (
+                        <span className="text-slate-400 italic">Not set</span>
+                      )}
+                    </td>
 
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => navigate(`/classes/subjects?class_id=${cls.id}`)}
-                    className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 transition-colors cursor-pointer"
-                    title="View & manage subjects for this class"
-                  >
-                    <BookOpen className="h-3.5 w-3.5 text-indigo-500" />
-                    <span>Subjects</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsModalOpen(true)}
-                    className="rounded-lg p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors cursor-pointer"
-                    title="Edit Class"
-                  >
-                    <Edit2 className="h-4 w-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDelete(cls)}
-                    className="rounded-lg p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                    title="Delete Class"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
+                    {/* Enrolled Students */}
+                    <td className="py-3.5 px-4">
+                      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-700">
+                        <Users className="h-3.5 w-3.5 text-indigo-500" />
+                        <span className="font-bold text-slate-900">{cls.students_count ?? 0}</span>
+                        <span className="text-slate-500">students</span>
+                      </span>
+                    </td>
+
+                    {/* Scope */}
+                    <td className="py-3.5 px-4">
+                      <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-medium text-emerald-700 border border-emerald-200/60">
+                        Tenant Isolated
+                      </span>
+                    </td>
+
+                    {/* Actions */}
+                    <td className="py-3.5 px-4 text-right">
+                      <div className="inline-flex items-center gap-1.5 justify-end">
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/classes/subjects?class_id=${cls.id}`)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-slate-200 bg-white text-slate-700 hover:text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50/50 transition-colors cursor-pointer shadow-2xs"
+                          title="View & manage subjects for this class"
+                        >
+                          <BookOpen className="h-3.5 w-3.5 text-indigo-600" />
+                          <span>Subjects</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setIsModalOpen(true)}
+                          className="rounded-lg p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors cursor-pointer"
+                          title="Edit Class"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(cls)}
+                          className="rounded-lg p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                          title="Delete Class"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 

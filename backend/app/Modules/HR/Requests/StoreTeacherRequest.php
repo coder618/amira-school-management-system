@@ -13,6 +13,21 @@ class StoreTeacherRequest extends FormRequest
 
     public function rules(): array
     {
+        $imageRule = function ($attribute, $value, $fail) {
+            if ($this->hasFile($attribute)) {
+                $file = $this->file($attribute);
+                $allowedMimes = ['jpeg', 'png', 'jpg', 'webp', 'gif'];
+                if (! in_array(strtolower($file->getClientOriginalExtension()), $allowedMimes)) {
+                    $fail("The {$attribute} must be an image (jpeg, png, jpg, webp, gif).");
+                }
+                if ($file->getSize() > 5120 * 1024) {
+                    $fail("The {$attribute} must not be greater than 5MB.");
+                }
+            } elseif (! is_string($value) && ! is_null($value)) {
+                $fail("The {$attribute} must be a valid image file or string path.");
+            }
+        };
+
         return [
             'name' => 'required|string|max:150',
             'email' => 'required|email|unique:users,email',
@@ -23,6 +38,8 @@ class StoreTeacherRequest extends FormRequest
             'phone_number' => ['nullable', 'string', 'regex:/^01[3-9]\d{8}$/'],
             'joining_date' => 'nullable|date',
             'password' => 'nullable|string|min:6',
+            'profile_picture' => ['nullable', $imageRule],
+            'image' => ['nullable', $imageRule],
         ];
     }
 

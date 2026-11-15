@@ -34,6 +34,15 @@ class Teacher extends Model
         ];
     }
 
+    protected $appends = [
+        'profile_picture_url',
+    ];
+
+    public function getProfilePictureUrlAttribute(): ?string
+    {
+        return $this->user?->profile_picture_url;
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
