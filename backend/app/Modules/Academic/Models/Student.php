@@ -87,6 +87,11 @@ class Student extends Model
         return $this->morphMany(Media::class, 'model');
     }
 
+    public function documents(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(\App\Modules\Documents\Models\Document::class, 'student_id');
+    }
+
     /**
      * Resolve image URL helper.
      */

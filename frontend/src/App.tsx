@@ -28,6 +28,7 @@ import { ManageResultsPage } from './pages/ManageResultsPage';
 import { SuperAdmin } from './pages/SuperAdmin';
 import { Settings } from './pages/Settings';
 import { Notifications } from './pages/Notifications';
+import { Documents } from './pages/Documents';
 import { UserProfilePage } from './pages/UserProfilePage';
 
 export const App: React.FC = () => {
@@ -68,6 +69,7 @@ export const App: React.FC = () => {
               <Route path="/exams/marks" element={<ExamMarksPage />} />
               <Route path="/exams/results" element={<ManageResultsPage />} />
               <Route path="/exams/marks-entry" element={<Navigate to="/exams/results" replace />} />
+              <Route path="/documents" element={<Documents />} />
               <Route path="/notifications" element={<Notifications />} />
               <Route path="/profile" element={<UserProfilePage />} />
               <Route path="/profile/:id" element={<UserProfilePage />} />

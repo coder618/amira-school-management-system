@@ -234,5 +234,56 @@ export interface TenantPayment {
   updated_at?: string;
 }
 
+export interface DocumentItem {
+  id: number;
+  school_id: number;
+  user_id?: number | null;
+  student_id?: number | null;
+  media_id: number;
+  uploaded_by?: number | null;
+  title: string;
+  document_type: string;
+  file_name?: string | null;
+  mime_type?: string | null;
+  file_size: number;
+  file_url?: string | null;
+  formatted_file_size?: string;
+  description?: string | null;
+  status: 'active' | 'archived' | 'verified';
+  user?: User | null;
+  student?: {
+    id: number;
+    student_id: string;
+    first_name: string;
+    last_name: string;
+    roll_number?: number;
+    class_level?: { id: number; name: string };
+    section?: { id: number; name: string };
+  } | null;
+  uploader?: User | null;
+  media?: MediaItem | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DocumentStats {
+  total_documents: number;
+  user_documents_count: number;
+  student_documents_count: number;
+  unassigned_documents_count: number;
+  total_bytes: number;
+  formatted_total_size: string;
+  by_type: Record<string, number>;
+  by_status: Record<string, number>;
+}
+
+export interface DocumentPaginationResponse {
+  current_page: number;
+  data: DocumentItem[];
+  total: number;
+  last_page: number;
+  per_page: number;
+}
+
 
 

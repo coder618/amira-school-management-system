@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { academicApi } from '../features/academic/api';
+import { documentsApi } from '../services/api';
 import { Student } from '../features/academic/types';
+import { DocumentItem } from '../types';
+import { UploadDocumentModal, DocumentPreviewModal } from '../features/documents';
 import {
   ArrowLeft,
   Edit,
@@ -21,6 +24,11 @@ import {
   Clock,
   Printer,
   Sparkles,
+  FolderArchive,
+  FileText,
+  Upload,
+  Download,
+  Plus,
 } from 'lucide-react';
 
 export const StudentProfilePage: React.FC = () => {
@@ -31,6 +39,22 @@ export const StudentProfilePage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<{ url: string; title: string } | null>(null);
+  const [documents, setDocuments] = useState<DocumentItem[]>([]);
+  const [documentsLoading, setDocumentsLoading] = useState(false);
+  const [isUploadDocOpen, setIsUploadDocOpen] = useState(false);
+  const [previewDoc, setPreviewDoc] = useState<DocumentItem | null>(null);
+
+  const fetchStudentDocuments = async (studentId: number) => {
+    try {
+      setDocumentsLoading(true);
+      const res = await documentsApi.getAll({ student_id: studentId });
+      setDocuments(res.data || []);
+    } catch {
+      // non-fatal
+    } finally {
+      setDocumentsLoading(false);
+    }
+  };
 
   useEffect(() => {
     const fetchStudent = async () => {
@@ -40,6 +64,7 @@ export const StudentProfilePage: React.FC = () => {
         setError(null);
         const data = await academicApi.getStudentById(Number(id));
         setStudent(data);
+        fetchStudentDocuments(Number(id));
       } catch (err: unknown) {
         if (err && typeof err === 'object' && 'response' in err) {
           const ax = err as { response?: { status?: number; data?: { message?: string } } };
@@ -379,6 +404,98 @@ export const StudentProfilePage: React.FC = () => {
               </div>
             </Link>
           </div>
+
+          {/* Student Documents Card (Media Module Backed) */}
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+            <div className="px-6 py-4 bg-slate-50/70 border-b border-slate-100 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <FolderArchive className="h-4 w-4 text-indigo-600" />
+                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+                  Student Documents ({documents.length})
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsUploadDocOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-all shadow-xs"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Upload Document
+              </button>
+            </div>
+
+            <div className="p-6">
+              {documentsLoading ? (
+                <div className="py-8 flex justify-center text-slate-400">
+                  <Loader2 className="h-6 w-6 animate-spin text-indigo-500" />
+                </div>
+              ) : documents.length === 0 ? (
+                <div className="text-center py-8">
+                  <div className="h-12 w-12 rounded-xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-2">
+                    <FileText className="h-6 w-6" />
+                  </div>
+                  <p className="text-xs font-semibold text-slate-700">No documents uploaded for this student</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    Upload birth certificates, NID copies, previous transcripts, or medical records via Media module.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setIsUploadDocOpen(true)}
+                    className="mt-3 inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors"
+                  >
+                    <Upload className="h-3.5 w-3.5" />
+                    Upload First Document
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {documents.map((doc) => (
+                    <div
+                      key={doc.id}
+                      className="border border-slate-200/80 rounded-xl p-3.5 hover:border-indigo-200 hover:bg-indigo-50/20 transition-all flex items-start justify-between gap-3 group"
+                    >
+                      <div className="flex items-start gap-2.5 min-w-0">
+                        <div className="h-9 w-9 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center shrink-0 mt-0.5">
+                          <FileText className="h-4 w-4" />
+                        </div>
+                        <div className="truncate">
+                          <p className="text-xs font-bold text-slate-900 truncate group-hover:text-indigo-600 transition-colors">
+                            {doc.title}
+                          </p>
+                          <span className="text-[10px] font-semibold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded-md capitalize inline-block my-0.5">
+                            {doc.document_type}
+                          </span>
+                          <p className="text-[11px] text-slate-400 font-mono">
+                            {doc.formatted_file_size} • {new Date(doc.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => setPreviewDoc(doc)}
+                          className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-slate-100 rounded-md transition-colors"
+                          title="Preview document"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </button>
+                        <a
+                          href={documentsApi.getDownloadUrl(doc.id)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="p-1 text-slate-400 hover:text-emerald-600 hover:bg-slate-100 rounded-md transition-colors"
+                          title="Download via Media module"
+                        >
+                          <Download className="h-3.5 w-3.5" />
+                        </a>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Right Column: Parents & Attached Photos (Media Module) */}
@@ -559,6 +676,29 @@ export const StudentProfilePage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Upload Document Modal */}
+      {student && (
+        <UploadDocumentModal
+          isOpen={isUploadDocOpen}
+          onClose={() => setIsUploadDocOpen(false)}
+          initialStudentId={student.id}
+          initialUserId={student.user_id || undefined}
+          onSuccess={() => {
+            fetchStudentDocuments(student.id);
+          }}
+        />
+      )}
+
+      {/* Preview Document Modal */}
+      <DocumentPreviewModal
+        document={previewDoc}
+        isOpen={!!previewDoc}
+        onClose={() => setPreviewDoc(null)}
+        onDeleted={(deletedId) => {
+          setDocuments((prev) => prev.filter((d) => d.id !== deletedId));
+        }}
+      />
     </div>
   );
 };

@@ -97,6 +97,30 @@ class User extends Authenticatable
     }
 
     /**
+     * Documents associated with this user.
+     */
+    public function documents(): HasMany
+    {
+        return $this->hasMany(\App\Modules\Documents\Models\Document::class, 'user_id');
+    }
+
+    /**
+     * Associated Student profile (if user is a student).
+     */
+    public function student(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(\App\Modules\Academic\Models\Student::class, 'user_id');
+    }
+
+    /**
+     * Associated Teacher profile (if user is a teacher).
+     */
+    public function teacher(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(\App\Modules\HR\Models\Teacher::class, 'user_id');
+    }
+
+    /**
      * Role checking helpers.
      */
     public function isSuperAdmin(): bool

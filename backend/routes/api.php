@@ -10,6 +10,7 @@ use App\Modules\Attendance\Controllers\AttendanceController;
 use App\Modules\Attendance\Controllers\AttendanceDeviceController;
 use App\Modules\Attendance\Controllers\MultiTenantAttendanceDeviceController;
 use App\Modules\Core\Controllers\SchoolController;
+use App\Modules\Documents\Controllers\DocumentController;
 use App\Modules\FundCollectionName\Controllers\FundCollectionNameController;
 use App\Modules\HR\Controllers\TeacherController;
 use App\Modules\Invoice\Controllers\InvoiceController;
@@ -85,6 +86,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/media', [MediaController::class, 'index']);
     Route::post('/media/upload', [MediaController::class, 'upload']);
     Route::delete('/media/{media}', [MediaController::class, 'destroy']);
+
+    // 1.2 Documents Module (Tenant-scoped Document Management via Media Module)
+    Route::get('/documents/stats', [DocumentController::class, 'stats']);
+    Route::get('/documents/{document}/download', [DocumentController::class, 'download']);
+    Route::apiResource('documents', DocumentController::class)->parameters(['documents' => 'document']);
 
     // 2. HR Module (Teachers) APIs
     Route::apiResource('teachers', TeacherController::class);

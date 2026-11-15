@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { AuthResponse, DashboardStats, Student, Course, User, School, SchoolExam, SchoolExamResult, TabulationData, FundCollectionName, TenantPayment, MediaItem, MediaPaginationResponse } from '../types';
+import { AuthResponse, DashboardStats, Student, Course, User, School, SchoolExam, SchoolExamResult, TabulationData, FundCollectionName, TenantPayment, MediaItem, MediaPaginationResponse, DocumentItem, DocumentStats, DocumentPaginationResponse } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
 
@@ -58,6 +58,10 @@ export const authApi = {
   },
   getUser: async (id: number): Promise<{ user: User }> => {
     const res = await apiClient.get<{ user: User }>(`/users/${id}`);
+    return res.data;
+  },
+  getUsers: async (params?: { role?: string; search?: string }): Promise<User[]> => {
+    const res = await apiClient.get<User[]>('/users', { params });
     return res.data;
   },
   uploadProfilePicture: async (file: File): Promise<{ message: string; user: User; profile_picture_url: string; media?: MediaItem }> => {
@@ -335,6 +339,107 @@ export const schoolApi = {
     return res.data;
   },
 };
+
+export const documentsApi = {
+  getAll: async (params?: {
+    search?: string;
+    document_type?: string;
+    user_id?: number;
+    student_id?: number;
+    status?: string;
+    sort_by?: string;
+    sort_order?: 'asc' | 'desc';
+    page?: number;
+    per_page?: number;
+  }): Promise<DocumentPaginationResponse> => {
+    const res = await apiClient.get<DocumentPaginationResponse>('/documents', { params });
+    return res.data;
+  },
+
+  getStats: async (): Promise<DocumentStats> => {
+    const res = await apiClient.get<DocumentStats>('/documents/stats');
+    return res.data;
+  },
+
+  getById: async (id: number): Promise<{ data: DocumentItem }> => {
+    const res = await apiClient.get<{ data: DocumentItem }>(`/documents/${id}`);
+    return res.data;
+  },
+
+  upload: async (payload: {
+    title: string;
+    document_type?: string;
+    user_id?: number | null;
+    student_id?: number | null;
+    description?: string;
+    status?: string;
+    file?: File | null;
+    media_id?: number;
+  }): Promise<{ message: string; data: DocumentItem }> => {
+    const formData = new FormData();
+    formData.append('title', payload.title);
+    if (payload.document_type) formData.append('document_type', payload.document_type);
+    if (payload.user_id) formData.append('user_id', String(payload.user_id));
+    if (payload.student_id) formData.append('student_id', String(payload.student_id));
+    if (payload.description) formData.append('description', payload.description);
+    if (payload.status) formData.append('status', payload.status);
+    if (payload.file) formData.append('file', payload.file);
+    if (payload.media_id) formData.append('media_id', String(payload.media_id));
+
+    const res = await apiClient.post<{ message: string; data: DocumentItem }>('/documents', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return res.data;
+  },
+
+  update: async (
+    id: number,
+    payload: {
+      title?: string;
+      document_type?: string;
+      user_id?: number | null;
+      student_id?: number | null;
+      description?: string;
+      status?: string;
+      file?: File | null;
+      media_id?: number;
+    }
+  ): Promise<{ message: string; data: DocumentItem }> => {
+    if (payload.file) {
+      const formData = new FormData();
+      formData.append('_method', 'PUT');
+      if (payload.title) formData.append('title', payload.title);
+      if (payload.document_type) formData.append('document_type', payload.document_type);
+      if (payload.user_id !== undefined) formData.append('user_id', payload.user_id ? String(payload.user_id) : '');
+      if (payload.student_id !== undefined) formData.append('student_id', payload.student_id ? String(payload.student_id) : '');
+      if (payload.description !== undefined) formData.append('description', payload.description || '');
+      if (payload.status) formData.append('status', payload.status);
+      formData.append('file', payload.file);
+
+      const res = await apiClient.post<{ message: string; data: DocumentItem }>(`/documents/${id}`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return res.data;
+    }
+
+    const res = await apiClient.put<{ message: string; data: DocumentItem }>(`/documents/${id}`, payload);
+    return res.data;
+  },
+
+  delete: async (id: number): Promise<{ message: string }> => {
+    const res = await apiClient.delete<{ message: string }>(`/documents/${id}`);
+    return res.data;
+  },
+
+  getDownloadUrl: (id: number): string => {
+    return `${API_BASE_URL}/documents/${id}/download`;
+  },
+};
+
 
 
 

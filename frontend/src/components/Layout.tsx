@@ -26,6 +26,7 @@ import {
   BookOpen,
   UserPlus,
   List,
+  FolderArchive,
 } from 'lucide-react';
 
 interface NavItem {
@@ -167,6 +168,7 @@ export const Layout: React.FC = () => {
         { label: 'Exam Results', path: '/exams/results', icon: FileSpreadsheet },
       ],
     },
+    { label: 'Documents', path: '/documents', icon: FolderArchive },
     { label: 'Notifications', path: '/notifications', icon: Bell },
     { label: 'Settings', path: '/settings', icon: Settings },
   ];
