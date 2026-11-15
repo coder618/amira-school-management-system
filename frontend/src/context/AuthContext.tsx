@@ -12,7 +12,9 @@ interface AuthContextType {
   register: (name: string, email: string, password: string, password_confirmation: string) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (updatedUser: User) => void;
+  updateProfile: (data: { name?: string; phone_number?: string }) => Promise<User>;
   uploadProfilePicture: (file: File) => Promise<User>;
+  setProfilePictureFromMedia: (mediaId: number) => Promise<User>;
   removeProfilePicture: () => Promise<User>;
   setUser: React.Dispatch<React.SetStateAction<User | null>>;
 }
@@ -109,8 +111,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('user', JSON.stringify(updatedUser));
   };
 
+  const updateProfile = async (data: { name?: string; phone_number?: string }): Promise<User> => {
+    const res = await authApi.updateProfile(data);
+    updateUser(res.user);
+    return res.user;
+  };
+
   const uploadProfilePicture = async (file: File): Promise<User> => {
     const res = await authApi.uploadProfilePicture(file);
+    updateUser(res.user);
+    return res.user;
+  };
+
+  const setProfilePictureFromMedia = async (mediaId: number): Promise<User> => {
+    const res = await authApi.setProfilePictureFromMedia(mediaId);
     updateUser(res.user);
     return res.user;
   };
@@ -132,7 +146,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         register,
         logout,
         updateUser,
+        updateProfile,
         uploadProfilePicture,
+        setProfilePictureFromMedia,
         removeProfilePicture,
         setUser,
       }}

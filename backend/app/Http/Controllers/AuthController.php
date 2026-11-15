@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Modules\Media\Models\Media;
+use App\Modules\Media\Services\MediaService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -11,6 +13,12 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
+    protected MediaService $mediaService;
+
+    public function __construct(MediaService $mediaService)
+    {
+        $this->mediaService = $mediaService;
+    }
     /**
      * Register a new user.
      */
@@ -84,7 +92,7 @@ class AuthController extends Controller
     public function user(Request $request): JsonResponse
     {
         return response()->json([
-            'user' => $request->user(),
+            'user' => $request->user()->loadMissing(['school']),
         ]);
     }
 
@@ -118,41 +126,112 @@ class AuthController extends Controller
     }
 
     /**
-     * Upload or update the authenticated user's own profile picture.
+     * Get specific user profile scoped to tenant.
      */
-    public function updateProfilePicture(Request $request): JsonResponse
+    public function show(Request $request, int $id): JsonResponse
     {
-        $request->validate([
-            'profile_picture' => 'required|image|mimes:jpeg,png,jpg,webp,gif|max:5120',
-        ]);
+        $schoolId = auth()->user()?->school_id
+            ?? ($request->header('X-School-Id') ? (int) $request->header('X-School-Id') : null);
 
-        $user = $request->user();
-
-        // Delete old profile picture if exists in storage
-        if ($user->profile_picture && Storage::disk('public')->exists($user->profile_picture)) {
-            Storage::disk('public')->delete($user->profile_picture);
+        $query = User::with(['school', 'media']);
+        if ($schoolId && ! auth()->user()?->isSuperAdmin()) {
+            $query->where('school_id', $schoolId);
         }
 
-        // Store new file in 'profile_pictures' directory on public disk
-        $path = $request->file('profile_picture')->store('profile_pictures', 'public');
-
-        $user->update([
-            'profile_picture' => $path,
-        ]);
+        $user = $query->findOrFail($id);
 
         return response()->json([
-            'message' => 'Profile picture updated successfully',
-            'user' => $user->fresh(),
-            'profile_picture_url' => $user->fresh()->profile_picture_url,
+            'user' => $user,
         ]);
     }
 
     /**
-     * Delete the authenticated user's profile picture.
+     * Upload or update the authenticated user's own profile picture via Media module.
+     */
+    public function updateProfilePicture(Request $request): JsonResponse
+    {
+        $request->validate([
+            'profile_picture' => 'nullable|file|mimes:jpeg,png,jpg,webp,gif|max:5120',
+            'file' => 'nullable|file|mimes:jpeg,png,jpg,webp,gif|max:5120',
+            'media_id' => 'nullable|integer',
+        ]);
+
+        $user = $request->user();
+        $schoolId = $user->school_id ?? 1;
+
+        if ($request->hasFile('profile_picture') || $request->hasFile('file')) {
+            $file = $request->file('profile_picture') ?? $request->file('file');
+
+            // Delete previous media records in profile_pictures collection for this user
+            $oldMedias = Media::where('user_id', $user->id)
+                ->where('collection_name', 'profile_pictures')
+                ->get();
+            foreach ($oldMedias as $oldMedia) {
+                $this->mediaService->delete($oldMedia);
+            }
+
+            // Also remove legacy file if exists
+            if ($user->profile_picture && Storage::disk('public')->exists($user->profile_picture)) {
+                Storage::disk('public')->delete($user->profile_picture);
+            }
+
+            // Upload using MediaService to enforce media module persistence
+            $media = $this->mediaService->upload(
+                file: $file,
+                schoolId: $schoolId,
+                collectionName: 'profile_pictures',
+                userId: $user->id,
+                model: $user
+            );
+
+            $user->update([
+                'profile_picture' => $media->file_path,
+            ]);
+
+            return response()->json([
+                'message' => 'Profile picture updated successfully',
+                'user' => $user->fresh()->loadMissing('school'),
+                'profile_picture_url' => $user->fresh()->profile_picture_url,
+                'media' => $media,
+            ]);
+        }
+
+        if ($request->filled('media_id')) {
+            $media = Media::where('id', $request->input('media_id'))->firstOrFail();
+
+            $user->update([
+                'profile_picture' => $media->file_path,
+            ]);
+
+            return response()->json([
+                'message' => 'Profile picture updated successfully',
+                'user' => $user->fresh()->loadMissing('school'),
+                'profile_picture_url' => $user->fresh()->profile_picture_url,
+                'media' => $media,
+            ]);
+        }
+
+        return response()->json(['message' => 'Please provide an image file or media_id.'], 422);
+    }
+
+    /**
+     * Delete the authenticated user's profile picture from storage and media module.
      */
     public function deleteProfilePicture(Request $request): JsonResponse
     {
         $user = $request->user();
+
+        // Delete from media module
+        $mediaRecords = Media::where('user_id', $user->id)
+            ->where(function ($q) use ($user) {
+                $q->where('collection_name', 'profile_pictures')
+                  ->orWhere('file_path', $user->profile_picture);
+            })
+            ->get();
+
+        foreach ($mediaRecords as $media) {
+            $this->mediaService->delete($media);
+        }
 
         if ($user->profile_picture && Storage::disk('public')->exists($user->profile_picture)) {
             Storage::disk('public')->delete($user->profile_picture);
@@ -164,7 +243,7 @@ class AuthController extends Controller
 
         return response()->json([
             'message' => 'Profile picture removed successfully',
-            'user' => $user->fresh(),
+            'user' => $user->fresh()->loadMissing('school'),
         ]);
     }
 

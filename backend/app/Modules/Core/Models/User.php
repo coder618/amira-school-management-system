@@ -80,6 +80,14 @@ class User extends Authenticatable
     }
 
     /**
+     * User's uploaded media files via Media module.
+     */
+    public function media(): HasMany
+    {
+        return $this->hasMany(\App\Modules\Media\Models\Media::class, 'user_id');
+    }
+
+    /**
      * Invoices issued directly to this user.
      */
     public function invoices(): HasMany

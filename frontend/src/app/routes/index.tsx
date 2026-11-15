@@ -38,5 +38,7 @@ export const ROUTES = {
   },
   NOTIFICATIONS: '/notifications',
   SETTINGS: '/settings',
+  PROFILE: '/profile',
+  USER_PROFILE: '/profile/:id',
 } as const;
 

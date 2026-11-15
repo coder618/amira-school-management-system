@@ -7,9 +7,36 @@ export interface User {
   phone_number?: string;
   profile_picture?: string | null;
   profile_picture_url?: string | null;
+  school?: School | null;
   is_active?: boolean;
   created_at?: string;
   updated_at?: string;
+}
+
+export interface MediaItem {
+  id: number;
+  school_id: number;
+  user_id?: number | null;
+  model_type?: string | null;
+  model_id?: number | null;
+  collection_name: string;
+  name: string;
+  file_name: string;
+  mime_type?: string | null;
+  disk: string;
+  size: number;
+  file_path: string;
+  url: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface MediaPaginationResponse {
+  current_page: number;
+  data: MediaItem[];
+  total: number;
+  last_page: number;
+  per_page: number;
 }
 
 export interface School {

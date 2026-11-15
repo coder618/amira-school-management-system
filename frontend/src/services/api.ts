@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { AuthResponse, DashboardStats, Student, Course, User, School, SchoolExam, SchoolExamResult, TabulationData, FundCollectionName, TenantPayment } from '../types';
+import { AuthResponse, DashboardStats, Student, Course, User, School, SchoolExam, SchoolExamResult, TabulationData, FundCollectionName, TenantPayment, MediaItem, MediaPaginationResponse } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
 
@@ -56,10 +56,16 @@ export const authApi = {
     const res = await apiClient.get<{ user: User }>('/user');
     return res.data;
   },
-  uploadProfilePicture: async (file: File): Promise<{ message: string; user: User; profile_picture_url: string }> => {
+  getUser: async (id: number): Promise<{ user: User }> => {
+    const res = await apiClient.get<{ user: User }>(`/users/${id}`);
+    return res.data;
+  },
+  uploadProfilePicture: async (file: File): Promise<{ message: string; user: User; profile_picture_url: string; media?: MediaItem }> => {
     const formData = new FormData();
     formData.append('profile_picture', file);
-    const res = await apiClient.post<{ message: string; user: User; profile_picture_url: string }>(
+    formData.append('file', file);
+    formData.append('collection_name', 'profile_pictures');
+    const res = await apiClient.post<{ message: string; user: User; profile_picture_url: string; media?: MediaItem }>(
       '/user/profile-picture',
       formData,
       {
@@ -70,12 +76,43 @@ export const authApi = {
     );
     return res.data;
   },
+  setProfilePictureFromMedia: async (mediaId: number): Promise<{ message: string; user: User; profile_picture_url: string }> => {
+    const res = await apiClient.post<{ message: string; user: User; profile_picture_url: string }>(
+      '/user/profile-picture',
+      { media_id: mediaId }
+    );
+    return res.data;
+  },
   deleteProfilePicture: async (): Promise<{ message: string; user: User }> => {
     const res = await apiClient.delete<{ message: string; user: User }>('/user/profile-picture');
     return res.data;
   },
   updateProfile: async (data: { name?: string; phone_number?: string }): Promise<{ message: string; user: User }> => {
     const res = await apiClient.put<{ message: string; user: User }>('/user/profile', data);
+    return res.data;
+  },
+};
+
+export const mediaApi = {
+  getMedia: async (params?: { collection_name?: string; model_type?: string; model_id?: number; user_id?: number; page?: number; per_page?: number }): Promise<MediaPaginationResponse> => {
+    const res = await apiClient.get<MediaPaginationResponse>('/media', { params });
+    return res.data;
+  },
+  upload: async (file: File, collectionName = 'default', modelType?: string, modelId?: number): Promise<{ message: string; data: MediaItem; url: string; file_path: string }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('collection_name', collectionName);
+    if (modelType) formData.append('model_type', modelType);
+    if (modelId) formData.append('model_id', String(modelId));
+    const res = await apiClient.post<{ message: string; data: MediaItem; url: string; file_path: string }>('/media/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return res.data;
+  },
+  delete: async (id: number): Promise<{ message: string }> => {
+    const res = await apiClient.delete<{ message: string }>(`/media/${id}`);
     return res.data;
   },
 };

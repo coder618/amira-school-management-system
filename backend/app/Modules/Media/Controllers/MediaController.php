@@ -32,6 +32,10 @@ class MediaController extends Controller
                   ->where('model_id', $request->query('model_id'));
         }
 
+        if ($request->filled('user_id')) {
+            $query->where('user_id', $request->query('user_id'));
+        }
+
         $media = $query->paginate($request->query('per_page', 20));
 
         return response()->json($media);
@@ -52,12 +56,29 @@ class MediaController extends Controller
         $collection = $request->input('collection_name', 'default');
         $userId = auth()->id();
 
+        $model = null;
+        if ($request->filled('model_type') && $request->filled('model_id')) {
+            $modelClass = $request->input('model_type');
+            if (class_exists($modelClass)) {
+                $model = $modelClass::find($request->input('model_id'));
+            }
+        } elseif ($collection === 'profile_pictures' && auth()->user()) {
+            $model = auth()->user();
+        }
+
         $media = $this->mediaService->upload(
             file: $request->file('file'),
             schoolId: $schoolId,
             collectionName: $collection,
-            userId: $userId
+            userId: $userId,
+            model: $model
         );
+
+        if ($collection === 'profile_pictures' && auth()->user()) {
+            auth()->user()->update([
+                'profile_picture' => $media->file_path,
+            ]);
+        }
 
         return response()->json([
             'message' => 'File uploaded successfully',

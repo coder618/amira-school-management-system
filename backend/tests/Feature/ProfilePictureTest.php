@@ -59,6 +59,13 @@ class ProfilePictureTest extends TestCase
         $this->user->refresh();
         $this->assertNotNull($this->user->profile_picture);
         Storage::disk('public')->assertExists($this->user->profile_picture);
+
+        // Verify media table has the record
+        $this->assertDatabaseHas('media', [
+            'user_id' => $this->user->id,
+            'collection_name' => 'profile_pictures',
+            'file_path' => $this->user->profile_picture,
+        ]);
     }
 
     public function test_uploading_new_picture_deletes_previous_one(): void
@@ -125,5 +132,58 @@ class ProfilePictureTest extends TestCase
         ]);
 
         $response->assertStatus(401);
+    }
+
+    public function test_media_module_retrieves_user_profile_pictures(): void
+    {
+        $file = UploadedFile::fake()->image('avatar_media.jpg', 300, 300);
+
+        $uploadRes = $this->actingAs($this->user, 'sanctum')
+            ->postJson('/api/user/profile-picture', ['file' => $file]);
+
+        $uploadRes->assertStatus(200);
+
+        // Retrieve via Media Module endpoint
+        $mediaRes = $this->actingAs($this->user, 'sanctum')
+            ->getJson('/api/media?collection_name=profile_pictures&user_id=' . $this->user->id);
+
+        $mediaRes->assertStatus(200);
+        $mediaRes->assertJsonFragment(['collection_name' => 'profile_pictures']);
+        $this->assertEquals(1, $mediaRes->json('total'));
+    }
+
+    public function test_user_can_set_profile_picture_from_existing_media_id(): void
+    {
+        // 1. Upload via Media Module directly
+        $file = UploadedFile::fake()->image('direct_media.png');
+        $mediaUploadRes = $this->actingAs($this->user, 'sanctum')
+            ->post('/api/media/upload', [
+                'file' => $file,
+                'collection_name' => 'profile_pictures',
+            ]);
+
+        $mediaUploadRes->assertStatus(201);
+        $mediaId = $mediaUploadRes->json('data.id');
+        $mediaPath = $mediaUploadRes->json('data.file_path');
+
+        // 2. Set profile picture using media_id
+        $setRes = $this->actingAs($this->user, 'sanctum')
+            ->postJson('/api/user/profile-picture', [
+                'media_id' => $mediaId,
+            ]);
+
+        $setRes->assertStatus(200);
+        $this->user->refresh();
+        $this->assertEquals($mediaPath, $this->user->profile_picture);
+    }
+
+    public function test_user_profile_endpoint_returns_user_details(): void
+    {
+        $response = $this->actingAs($this->user, 'sanctum')
+            ->getJson("/api/users/{$this->user->id}");
+
+        $response->assertStatus(200)
+            ->assertJsonPath('user.id', $this->user->id)
+            ->assertJsonPath('user.email', $this->user->email);
     }
 }

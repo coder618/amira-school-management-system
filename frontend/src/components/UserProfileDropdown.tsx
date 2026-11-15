@@ -12,6 +12,7 @@ import {
   Check,
   AlertCircle,
   Shield,
+  User as UserIcon,
 } from 'lucide-react';
 
 export const UserProfileDropdown: React.FC = () => {
@@ -196,8 +197,12 @@ export const UserProfileDropdown: React.FC = () => {
               </div>
 
               {/* Identity Details */}
-              <div className="flex-1 min-w-0">
-                <h4 className="text-sm font-bold text-white truncate">
+              <Link
+                to="/profile"
+                onClick={() => setIsOpen(false)}
+                className="flex-1 min-w-0 group/link block cursor-pointer"
+              >
+                <h4 className="text-sm font-bold text-white truncate group-hover/link:text-indigo-200 transition-colors">
                   {user?.name || 'Administrator'}
                 </h4>
                 <p className="text-xs text-slate-300 truncate">{user?.email}</p>
@@ -207,7 +212,7 @@ export const UserProfileDropdown: React.FC = () => {
                     {user?.role || 'Admin'}
                   </span>
                 </div>
-              </div>
+              </Link>
             </div>
 
             {/* Photo Action Buttons */}
@@ -253,6 +258,15 @@ export const UserProfileDropdown: React.FC = () => {
 
           {/* Navigation Links */}
           <div className="p-2 space-y-0.5">
+            <Link
+              to="/profile"
+              onClick={() => setIsOpen(false)}
+              className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
+            >
+              <UserIcon className="h-4 w-4 text-indigo-500" />
+              <span>My Profile Page</span>
+            </Link>
+
             <Link
               to="/settings"
               onClick={() => setIsOpen(false)}
