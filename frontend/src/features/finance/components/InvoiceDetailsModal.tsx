@@ -140,9 +140,9 @@ export const InvoiceDetailsModal: React.FC<InvoiceDetailsModalProps> = ({
             <div className="flex items-center justify-between mb-3">
               <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
                 <CreditCard className="h-4 w-4 text-emerald-600" />
-                Payment Module Transactions ({invoice.payments?.length || 0})
+                Payment Records ({invoice.payments?.length || 0})
               </h4>
-              <span className="text-[11px] text-slate-500">Archived in Payments Ledger</span>
+              <span className="text-[11px] text-slate-500">Archived in Payment Records</span>
             </div>
 
             {(!invoice.payments || invoice.payments.length === 0) ? (

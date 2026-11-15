@@ -72,7 +72,7 @@ export const PaymentsView: React.FC = () => {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
             <CreditCard className="h-7 w-7 text-indigo-600" />
-            Payments Module
+            Payment Records
           </h1>
           <p className="text-xs sm:text-sm text-slate-500">
             Official transaction slips, payment gateway receipts, and verified records
@@ -217,7 +217,7 @@ export const PaymentsView: React.FC = () => {
       <div className="rounded-2xl border border-slate-200/80 bg-white shadow-xs overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
           <div>
-            <h3 className="text-sm font-bold text-slate-900">Payments Module Ledger</h3>
+            <h3 className="text-sm font-bold text-slate-900">Payment Records Ledger</h3>
             <p className="text-xs text-slate-500">
               Official transaction slips and payment transaction records
             </p>
