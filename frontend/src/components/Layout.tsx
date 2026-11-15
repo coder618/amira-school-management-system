@@ -28,6 +28,9 @@ import {
   List,
   FolderArchive,
   Plus,
+  BookPlus,
+  BookmarkPlus,
+  RotateCcw,
 } from 'lucide-react';
 
 interface NavItem {
@@ -81,6 +84,7 @@ export const Layout: React.FC = () => {
   const isFinanceActive = location.pathname.startsWith('/finance');
   const isExamsActive = location.pathname.startsWith('/exams');
   const isDocumentsActive = location.pathname.startsWith('/documents');
+  const isLibraryActive = location.pathname.startsWith('/library');
 
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({
     '/students': isStudentsActive,
@@ -89,6 +93,7 @@ export const Layout: React.FC = () => {
     '/finance': isFinanceActive,
     '/exams': isExamsActive,
     '/documents': isDocumentsActive,
+    '/library': isLibraryActive,
   });
 
   useEffect(() => {
@@ -110,7 +115,10 @@ export const Layout: React.FC = () => {
     if (isDocumentsActive) {
       setOpenMenus((prev) => ({ ...prev, '/documents': true }));
     }
-  }, [isStudentsActive, isClassesActive, isTeachersActive, isFinanceActive, isExamsActive, isDocumentsActive]);
+    if (isLibraryActive) {
+      setOpenMenus((prev) => ({ ...prev, '/library': true }));
+    }
+  }, [isStudentsActive, isClassesActive, isTeachersActive, isFinanceActive, isExamsActive, isDocumentsActive, isLibraryActive]);
 
   const toggleSubmenu = (menuPath: string) => {
     setOpenMenus((prev) => ({
@@ -181,6 +189,17 @@ export const Layout: React.FC = () => {
       children: [
         { label: 'Add new', path: '/documents/create', icon: Plus },
         { label: 'List Documents', path: '/documents', icon: List },
+      ],
+    },
+    {
+      label: 'Library',
+      path: '/library',
+      icon: BookOpen,
+      children: [
+        { label: 'Create Book', path: '/library/books/create', icon: BookPlus },
+        { label: 'Issue a Book', path: '/library/issue', icon: BookmarkPlus },
+        { label: 'List Books (with filters)', path: '/library/books', icon: List },
+        { label: 'Return a Book', path: '/library/return', icon: RotateCcw },
       ],
     },
     { label: 'Notifications', path: '/notifications', icon: Bell },

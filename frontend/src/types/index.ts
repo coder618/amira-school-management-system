@@ -285,5 +285,89 @@ export interface DocumentPaginationResponse {
   per_page: number;
 }
 
+export interface BookItem {
+  id: number;
+  school_id: number;
+  title: string;
+  author: string;
+  isbn?: string | null;
+  category?: string | null;
+  publisher?: string | null;
+  edition?: string | null;
+  publication_year?: string | null;
+  total_copies: number;
+  available_copies: number;
+  borrowed_copies?: number;
+  is_available?: boolean;
+  rack_number?: string | null;
+  description?: string | null;
+  cover_image?: string | null;
+  status: 'available' | 'maintenance' | 'archived' | 'lost';
+  book_issues?: BookIssueItem[];
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface BookIssueItem {
+  id: number;
+  school_id: number;
+  book_id: number;
+  student_id: number;
+  issued_by?: number | null;
+  received_by?: number | null;
+  issue_date: string;
+  due_date: string;
+  return_date?: string | null;
+  status: 'issued' | 'returned' | 'overdue' | 'lost';
+  fine_amount: number | string;
+  fine_status: 'unpaid' | 'paid' | 'waived';
+  notes?: string | null;
+  is_overdue?: boolean;
+  days_overdue?: number;
+  days_remaining?: number;
+  book?: BookItem;
+  student?: {
+    id: number;
+    student_id: string;
+    first_name: string;
+    last_name: string;
+    roll_number?: number;
+    phone_number?: string;
+    class_level?: { id: number; name: string };
+    section?: { id: number; name: string };
+  };
+  issuer?: User | null;
+  receiver?: User | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface LibraryStats {
+  total_books: number;
+  total_copies: number;
+  available_copies: number;
+  borrowed_copies: number;
+  active_issues: number;
+  overdue_issues: number;
+  total_returned: number;
+}
+
+export interface BookPaginationResponse {
+  current_page: number;
+  data: BookItem[];
+  total: number;
+  last_page: number;
+  per_page: number;
+}
+
+export interface BookIssuePaginationResponse {
+  current_page: number;
+  data: BookIssueItem[];
+  total: number;
+  last_page: number;
+  per_page: number;
+}
+
+
 
 

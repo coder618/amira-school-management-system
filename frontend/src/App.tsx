@@ -31,6 +31,11 @@ import { Notifications } from './pages/Notifications';
 import { Documents } from './pages/Documents';
 import { AddDocumentPage } from './pages/AddDocumentPage';
 import { UserProfilePage } from './pages/UserProfilePage';
+import { BooksListPage } from './pages/BooksListPage';
+import { CreateBookPage } from './pages/CreateBookPage';
+import { ViewBookPage } from './pages/ViewBookPage';
+import { IssueBookPage } from './pages/IssueBookPage';
+import { ReturnBookPage } from './pages/ReturnBookPage';
 
 export const App: React.FC = () => {
   return (
@@ -74,6 +79,17 @@ export const App: React.FC = () => {
               <Route path="/documents/list" element={<Navigate to="/documents" replace />} />
               <Route path="/documents/create" element={<AddDocumentPage />} />
               <Route path="/documents/add" element={<Navigate to="/documents/create" replace />} />
+              {/* Library Module Routes */}
+              <Route path="/library" element={<Navigate to="/library/books" replace />} />
+              <Route path="/library/books" element={<BooksListPage />} />
+              <Route path="/library/books/list" element={<Navigate to="/library/books" replace />} />
+              <Route path="/library/books/create" element={<CreateBookPage />} />
+              <Route path="/library/books/add" element={<Navigate to="/library/books/create" replace />} />
+              <Route path="/library/books/:id" element={<ViewBookPage />} />
+              <Route path="/library/issue" element={<IssueBookPage />} />
+              <Route path="/library/issues/create" element={<Navigate to="/library/issue" replace />} />
+              <Route path="/library/return" element={<ReturnBookPage />} />
+              <Route path="/library/returns" element={<Navigate to="/library/return" replace />} />
               <Route path="/notifications" element={<Notifications />} />
               <Route path="/profile" element={<UserProfilePage />} />
               <Route path="/profile/:id" element={<UserProfilePage />} />

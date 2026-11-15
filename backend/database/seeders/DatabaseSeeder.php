@@ -456,6 +456,156 @@ class DatabaseSeeder extends Seeder
                     'read_at' => null,
                 ]
             );
+
+            // Library Module Seeds
+            $sampleBooks = [
+                [
+                    'title' => 'Higher Secondary Physics Vol 1',
+                    'author' => 'Dr. Shahjahan Tapan',
+                    'isbn' => '978-9843321501',
+                    'category' => 'Science',
+                    'publisher' => 'Hasan Book House',
+                    'edition' => '12th Edition',
+                    'publication_year' => '2024',
+                    'total_copies' => 10,
+                    'available_copies' => 8,
+                    'rack_number' => 'Rack A-1',
+                    'description' => 'Comprehensive textbook covering mechanics, waves, and thermodynamics according to NCTB syllabus.',
+                ],
+                [
+                    'title' => 'Chander Pahar (Mountain of the Moon)',
+                    'author' => 'Bibhutibhushan Bandyopadhyay',
+                    'isbn' => '978-9844001234',
+                    'category' => 'Bangla Literature',
+                    'publisher' => 'Ananya Prokashoni',
+                    'edition' => '5th Edition',
+                    'publication_year' => '2022',
+                    'total_copies' => 6,
+                    'available_copies' => 4,
+                    'rack_number' => 'Rack L-3',
+                    'description' => 'Classic Bengali adventure novel following Shankar through the African wilderness.',
+                ],
+                [
+                    'title' => 'Fundamentals of Computer Science & ICT',
+                    'author' => 'Pankaj Kumar Sarker',
+                    'isbn' => '978-9848911029',
+                    'category' => 'Computer Science',
+                    'publisher' => 'Akhar Patra Prokashani',
+                    'edition' => '4th Edition',
+                    'publication_year' => '2025',
+                    'total_copies' => 8,
+                    'available_copies' => 7,
+                    'rack_number' => 'Rack CS-2',
+                    'description' => 'Core computing fundamentals, basic networking, web development and Python programming.',
+                ],
+                [
+                    'title' => 'Higher Secondary Chemistry Vol 1',
+                    'author' => 'Dr. Saroj Kanti Singha Hazari',
+                    'isbn' => '978-9845543210',
+                    'category' => 'Science',
+                    'publisher' => 'Hasan Book House',
+                    'edition' => '10th Edition',
+                    'publication_year' => '2023',
+                    'total_copies' => 7,
+                    'available_copies' => 5,
+                    'rack_number' => 'Rack A-2',
+                    'description' => 'In-depth coverage of atomic structure, periodic properties, and chemical calculations.',
+                ],
+                [
+                    'title' => 'History of the Liberation War of Bangladesh',
+                    'author' => 'Dr. Muntasir Mamoon',
+                    'isbn' => '978-9844654321',
+                    'category' => 'History',
+                    'publisher' => 'Mawla Brothers',
+                    'edition' => '3rd Edition',
+                    'publication_year' => '2021',
+                    'total_copies' => 5,
+                    'available_copies' => 3,
+                    'rack_number' => 'Rack H-1',
+                    'description' => 'Chronological historical documentation of the 1971 Bangladesh Liberation War and historical context.',
+                ],
+                [
+                    'title' => 'Advanced English Grammar and Composition',
+                    'author' => 'P. C. Das',
+                    'isbn' => '978-8121901234',
+                    'category' => 'English',
+                    'publisher' => 'New Central Book Agency',
+                    'edition' => '8th Edition',
+                    'publication_year' => '2023',
+                    'total_copies' => 12,
+                    'available_copies' => 10,
+                    'rack_number' => 'Rack E-1',
+                    'description' => 'Standard grammar reference book for secondary and higher secondary school students.',
+                ],
+            ];
+
+            $createdBooks = [];
+            foreach ($sampleBooks as $bData) {
+                $createdBooks[] = \App\Modules\Library\Models\Book::firstOrCreate(
+                    ['school_id' => $school->id, 'title' => $bData['title']],
+                    array_merge($bData, ['school_id' => $school->id, 'status' => 'available'])
+                );
+            }
+
+            $firstStudent = \App\Modules\Academic\Models\Student::where('school_id', $school->id)->first();
+            $secondStudent = \App\Modules\Academic\Models\Student::where('school_id', $school->id)->skip(1)->first();
+
+            if ($firstStudent && ! empty($createdBooks)) {
+                // 1. Currently active issue
+                \App\Modules\Library\Models\BookIssue::firstOrCreate(
+                    [
+                        'school_id' => $school->id,
+                        'book_id' => $createdBooks[0]->id,
+                        'student_id' => $firstStudent->id,
+                        'status' => 'issued',
+                    ],
+                    [
+                        'issued_by' => $adminUser->id,
+                        'issue_date' => now()->subDays(4)->toDateString(),
+                        'due_date' => now()->addDays(10)->toDateString(),
+                        'notes' => 'Issued for midterm exam preparation',
+                    ]
+                );
+
+                // 2. Overdue issue for demo
+                \App\Modules\Library\Models\BookIssue::firstOrCreate(
+                    [
+                        'school_id' => $school->id,
+                        'book_id' => $createdBooks[1]->id,
+                        'student_id' => $firstStudent->id,
+                        'status' => 'issued',
+                        'due_date' => now()->subDays(3)->toDateString(),
+                    ],
+                    [
+                        'issued_by' => $adminUser->id,
+                        'issue_date' => now()->subDays(17)->toDateString(),
+                        'due_date' => now()->subDays(3)->toDateString(),
+                        'notes' => 'Coursework reading assignment',
+                    ]
+                );
+            }
+
+            if ($secondStudent && count($createdBooks) > 2) {
+                // 3. Completed returned issue
+                \App\Modules\Library\Models\BookIssue::firstOrCreate(
+                    [
+                        'school_id' => $school->id,
+                        'book_id' => $createdBooks[2]->id,
+                        'student_id' => $secondStudent->id,
+                        'status' => 'returned',
+                    ],
+                    [
+                        'issued_by' => $adminUser->id,
+                        'received_by' => $adminUser->id,
+                        'issue_date' => now()->subDays(20)->toDateString(),
+                        'due_date' => now()->subDays(6)->toDateString(),
+                        'return_date' => now()->subDays(5)->toDateString(),
+                        'fine_amount' => 10.00,
+                        'fine_status' => 'paid',
+                        'notes' => 'Returned 1 day late, fine received.',
+                    ]
+                );
+            }
         }
     }
 }

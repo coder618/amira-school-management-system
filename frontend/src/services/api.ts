@@ -1,5 +1,27 @@
 import axios from 'axios';
-import { AuthResponse, DashboardStats, Student, Course, User, School, SchoolExam, SchoolExamResult, TabulationData, FundCollectionName, TenantPayment, MediaItem, MediaPaginationResponse, DocumentItem, DocumentStats, DocumentPaginationResponse } from '../types';
+import {
+  AuthResponse,
+  DashboardStats,
+  Student,
+  Course,
+  User,
+  School,
+  SchoolExam,
+  SchoolExamResult,
+  TabulationData,
+  FundCollectionName,
+  TenantPayment,
+  MediaItem,
+  MediaPaginationResponse,
+  DocumentItem,
+  DocumentStats,
+  DocumentPaginationResponse,
+  BookItem,
+  BookIssueItem,
+  LibraryStats,
+  BookPaginationResponse,
+  BookIssuePaginationResponse,
+} from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
 
@@ -439,6 +461,102 @@ export const documentsApi = {
     return `${API_BASE_URL}/documents/${id}/download`;
   },
 };
+
+export const libraryApi = {
+  getStats: async (): Promise<LibraryStats> => {
+    const res = await apiClient.get<LibraryStats>('/library/stats');
+    return res.data;
+  },
+
+  getCategories: async (): Promise<string[]> => {
+    const res = await apiClient.get<string[]>('/library/categories');
+    return res.data;
+  },
+
+  getBooks: async (params?: {
+    search?: string;
+    category?: string;
+    availability?: string;
+    status?: string;
+    sort_by?: string;
+    sort_order?: 'asc' | 'desc';
+    page?: number;
+    per_page?: number;
+  }): Promise<BookPaginationResponse> => {
+    const res = await apiClient.get<BookPaginationResponse>('/library/books', { params });
+    return res.data;
+  },
+
+  getBook: async (id: number): Promise<{ data: BookItem }> => {
+    const res = await apiClient.get<{ data: BookItem }>(`/library/books/${id}`);
+    return res.data;
+  },
+
+  createBook: async (data: Partial<BookItem>): Promise<{ message: string; data: BookItem }> => {
+    const res = await apiClient.post<{ message: string; data: BookItem }>('/library/books', data);
+    return res.data;
+  },
+
+  updateBook: async (id: number, data: Partial<BookItem>): Promise<{ message: string; data: BookItem }> => {
+    const res = await apiClient.put<{ message: string; data: BookItem }>(`/library/books/${id}`, data);
+    return res.data;
+  },
+
+  deleteBook: async (id: number): Promise<{ message: string }> => {
+    const res = await apiClient.delete<{ message: string }>(`/library/books/${id}`);
+    return res.data;
+  },
+
+  getIssues: async (params?: {
+    status?: string;
+    search?: string;
+    student_id?: number;
+    book_id?: number;
+    sort_by?: string;
+    sort_order?: 'asc' | 'desc';
+    page?: number;
+    per_page?: number;
+  }): Promise<BookIssuePaginationResponse> => {
+    const res = await apiClient.get<BookIssuePaginationResponse>('/library/issues', { params });
+    return res.data;
+  },
+
+  getIssue: async (id: number): Promise<{ data: BookIssueItem }> => {
+    const res = await apiClient.get<{ data: BookIssueItem }>(`/library/issues/${id}`);
+    return res.data;
+  },
+
+  issueBook: async (data: {
+    book_id: number;
+    student_id: number;
+    issue_date: string;
+    due_date: string;
+    notes?: string;
+  }): Promise<{ message: string; data: BookIssueItem }> => {
+    const res = await apiClient.post<{ message: string; data: BookIssueItem }>('/library/issues', data);
+    return res.data;
+  },
+
+  returnBook: async (
+    issueId: number,
+    data: {
+      return_date?: string;
+      status?: 'returned' | 'lost';
+      fine_amount?: number;
+      fine_status?: 'unpaid' | 'paid' | 'waived';
+      notes?: string;
+    }
+  ): Promise<{ message: string; data: BookIssueItem }> => {
+    const res = await apiClient.post<{ message: string; data: BookIssueItem }>(`/library/issues/${issueId}/return`, data);
+    return res.data;
+  },
+
+  deleteIssue: async (id: number): Promise<{ message: string }> => {
+    const res = await apiClient.delete<{ message: string }>(`/library/issues/${id}`);
+    return res.data;
+  },
+};
+
 
 
 

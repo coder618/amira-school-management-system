@@ -14,6 +14,8 @@ use App\Modules\Documents\Controllers\DocumentController;
 use App\Modules\FundCollectionName\Controllers\FundCollectionNameController;
 use App\Modules\HR\Controllers\TeacherController;
 use App\Modules\Invoice\Controllers\InvoiceController;
+use App\Modules\Library\Controllers\BookController;
+use App\Modules\Library\Controllers\BookIssueController;
 use App\Modules\Media\Controllers\MediaController;
 use App\Modules\Notification\Controllers\NotificationController;
 use App\Modules\Payments\Controllers\PaymentController;
@@ -157,4 +159,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/notifications/{notification}', [NotificationController::class, 'destroy']); // Soft delete
     Route::post('/notifications/{id}/restore', [NotificationController::class, 'restore']);
     Route::delete('/notifications/{id}/force', [NotificationController::class, 'forceDestroy']);
+
+    // 9. Library Module (Books, Stock Inventory & Book Issues)
+    Route::get('/library/stats', [BookController::class, 'stats']);
+    Route::get('/library/categories', [BookController::class, 'categories']);
+    Route::apiResource('library/books', BookController::class)->parameters(['books' => 'book']);
+    Route::get('/library/issues', [BookIssueController::class, 'index']);
+    Route::post('/library/issues', [BookIssueController::class, 'store']);
+    Route::get('/library/issues/{issue}', [BookIssueController::class, 'show']);
+    Route::post('/library/issues/{issue}/return', [BookIssueController::class, 'returnBook']);
+    Route::delete('/library/issues/{issue}', [BookIssueController::class, 'destroy']);
 });
