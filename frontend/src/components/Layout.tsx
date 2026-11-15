@@ -27,6 +27,7 @@ import {
   UserPlus,
   List,
   FolderArchive,
+  Plus,
 } from 'lucide-react';
 
 interface NavItem {
@@ -79,6 +80,7 @@ export const Layout: React.FC = () => {
   const isTeachersActive = location.pathname.startsWith('/teachers');
   const isFinanceActive = location.pathname.startsWith('/finance');
   const isExamsActive = location.pathname.startsWith('/exams');
+  const isDocumentsActive = location.pathname.startsWith('/documents');
 
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({
     '/students': isStudentsActive,
@@ -86,6 +88,7 @@ export const Layout: React.FC = () => {
     '/teachers': isTeachersActive,
     '/finance': isFinanceActive,
     '/exams': isExamsActive,
+    '/documents': isDocumentsActive,
   });
 
   useEffect(() => {
@@ -104,7 +107,10 @@ export const Layout: React.FC = () => {
     if (isExamsActive) {
       setOpenMenus((prev) => ({ ...prev, '/exams': true }));
     }
-  }, [isStudentsActive, isClassesActive, isTeachersActive, isFinanceActive, isExamsActive]);
+    if (isDocumentsActive) {
+      setOpenMenus((prev) => ({ ...prev, '/documents': true }));
+    }
+  }, [isStudentsActive, isClassesActive, isTeachersActive, isFinanceActive, isExamsActive, isDocumentsActive]);
 
   const toggleSubmenu = (menuPath: string) => {
     setOpenMenus((prev) => ({
@@ -168,7 +174,15 @@ export const Layout: React.FC = () => {
         { label: 'Exam Results', path: '/exams/results', icon: FileSpreadsheet },
       ],
     },
-    { label: 'Documents', path: '/documents', icon: FolderArchive },
+    {
+      label: 'Documents',
+      path: '/documents',
+      icon: FolderArchive,
+      children: [
+        { label: 'Add new', path: '/documents/create', icon: Plus },
+        { label: 'List Documents', path: '/documents', icon: List },
+      ],
+    },
     { label: 'Notifications', path: '/notifications', icon: Bell },
     { label: 'Settings', path: '/settings', icon: Settings },
   ];
@@ -220,7 +234,7 @@ export const Layout: React.FC = () => {
               const isChildActive = item.children.some(
                 (c) =>
                   location.pathname === c.path ||
-                  (c.path !== '/students' && c.path !== '/teachers' && location.pathname.startsWith(c.path))
+                  (c.path !== '/students' && c.path !== '/teachers' && c.path !== '/documents' && location.pathname.startsWith(c.path))
               );
 
               const isOpen = Boolean(openMenus[item.path]);
@@ -253,7 +267,7 @@ export const Layout: React.FC = () => {
                           <NavLink
                             key={sub.path}
                             to={sub.path}
-                            end={sub.path === '/students' || sub.path === '/teachers'}
+                            end={sub.path === '/students' || sub.path === '/teachers' || sub.path === '/documents'}
                             onClick={() => setMobileMenuOpen(false)}
                             className={({ isActive }) =>
                               `flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${isActive

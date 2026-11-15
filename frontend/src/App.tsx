@@ -29,6 +29,7 @@ import { SuperAdmin } from './pages/SuperAdmin';
 import { Settings } from './pages/Settings';
 import { Notifications } from './pages/Notifications';
 import { Documents } from './pages/Documents';
+import { AddDocumentPage } from './pages/AddDocumentPage';
 import { UserProfilePage } from './pages/UserProfilePage';
 
 export const App: React.FC = () => {
@@ -70,6 +71,9 @@ export const App: React.FC = () => {
               <Route path="/exams/results" element={<ManageResultsPage />} />
               <Route path="/exams/marks-entry" element={<Navigate to="/exams/results" replace />} />
               <Route path="/documents" element={<Documents />} />
+              <Route path="/documents/list" element={<Navigate to="/documents" replace />} />
+              <Route path="/documents/create" element={<AddDocumentPage />} />
+              <Route path="/documents/add" element={<Navigate to="/documents/create" replace />} />
               <Route path="/notifications" element={<Notifications />} />
               <Route path="/profile" element={<UserProfilePage />} />
               <Route path="/profile/:id" element={<UserProfilePage />} />

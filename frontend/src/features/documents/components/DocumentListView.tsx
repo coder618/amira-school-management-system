@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   FileText,
   Upload,
@@ -33,6 +34,7 @@ const CATEGORIES = [
 ];
 
 export const DocumentListView: React.FC = () => {
+  const navigate = useNavigate();
   const [documents, setDocuments] = useState<DocumentItem[]>([]);
   const [stats, setStats] = useState<DocumentStats | null>(null);
   const [pagination, setPagination] = useState<{
@@ -159,7 +161,7 @@ export const DocumentListView: React.FC = () => {
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
           <button
-            onClick={() => setIsUploadOpen(true)}
+            onClick={() => navigate('/documents/create')}
             className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm hover:shadow-indigo-500/20 active:scale-[0.98]"
           >
             <Plus className="h-4 w-4" />
@@ -294,7 +296,7 @@ export const DocumentListView: React.FC = () => {
                 : 'Upload identity proofs, birth certificates, academic records, and institutional files via the Media module.'}
             </p>
             <button
-              onClick={() => setIsUploadOpen(true)}
+              onClick={() => navigate('/documents/create')}
               className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm"
             >
               <Upload className="h-3.5 w-3.5" />
