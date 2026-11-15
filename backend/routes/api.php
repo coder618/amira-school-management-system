@@ -7,6 +7,8 @@ use App\Modules\Academic\Controllers\ShiftController;
 use App\Modules\Academic\Controllers\StudentController;
 use App\Modules\Academic\Controllers\SubjectController;
 use App\Modules\Attendance\Controllers\AttendanceController;
+use App\Modules\Attendance\Controllers\AttendanceDeviceController;
+use App\Modules\Attendance\Controllers\MultiTenantAttendanceDeviceController;
 use App\Modules\Core\Controllers\SchoolController;
 use App\Modules\FundCollectionName\Controllers\FundCollectionNameController;
 use App\Modules\HR\Controllers\TeacherController;
@@ -32,6 +34,15 @@ Route::get('/health', function () {
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 
+// External Hardware Attendance Device Ingestion (Authenticated via X-Device-Token or device API token)
+Route::prefix('attendance/device')->group(function () {
+    Route::post('/punch', [AttendanceDeviceController::class, 'recordPunch']);
+    Route::post('/record', [AttendanceDeviceController::class, 'recordPunch']);
+    Route::post('/bulk-punches', [AttendanceDeviceController::class, 'bulkPunches']);
+    Route::get('/ping', [AttendanceDeviceController::class, 'ping']);
+    Route::post('/ping', [AttendanceDeviceController::class, 'ping']);
+});
+
 // Protected routes (Sanctum)
 Route::middleware('auth:sanctum')->group(function () {
     // Current user & session
@@ -52,10 +63,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/schools/{school}', [SchoolController::class, 'show']);
     Route::put('/schools/{school}', [SchoolController::class, 'update']);
 
-    // SuperAdmin Only Routes (Core Tenant School Management)
+    // SuperAdmin Only Routes (Core Tenant School Management & Multi-Tenant Devices)
     Route::middleware('super_admin')->group(function () {
         Route::get('/schools', [SchoolController::class, 'index']);
         Route::post('/schools', [SchoolController::class, 'store']);
+
+        // Multi-Tenant Attendance Device Management Module
+        Route::get('/super-admin/attendance/devices', [MultiTenantAttendanceDeviceController::class, 'index']);
+        Route::post('/super-admin/attendance/devices', [MultiTenantAttendanceDeviceController::class, 'store']);
+        Route::get('/super-admin/attendance/devices/stats', [MultiTenantAttendanceDeviceController::class, 'stats']);
+        Route::get('/super-admin/attendance/devices/logs', [MultiTenantAttendanceDeviceController::class, 'logs']);
     });
 
     // 1. Academic Module (SIS) APIs
@@ -76,6 +93,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/attendances', [AttendanceController::class, 'index']);
     Route::post('/attendances/bulk-upsert', [AttendanceController::class, 'bulkUpsert']);
     Route::get('/attendances/stats', [AttendanceController::class, 'stats']);
+
+    // 3.1 External Attendance Devices Management & Telemetry
+    Route::apiResource('attendance/devices', AttendanceDeviceController::class)->parameters(['devices' => 'device']);
+    Route::post('/attendance/devices/{device}/regenerate-token', [AttendanceDeviceController::class, 'regenerateToken']);
+    Route::get('/attendance/device-logs', [AttendanceDeviceController::class, 'logs']);
+    Route::get('/attendance/device-stats', [AttendanceDeviceController::class, 'stats']);
+    Route::post('/attendance/device/simulate', [AttendanceDeviceController::class, 'simulatePunch']);
+    Route::post('/attendance/device/assign-card', [AttendanceDeviceController::class, 'assignCard']);
 
     // 4. FundCollectionName & Payments Modules (Tenant Fees & Collections)
     Route::apiResource('fund-collection-names', FundCollectionNameController::class)->parameters(['fund-collection-names' => 'fundCollectionName']);

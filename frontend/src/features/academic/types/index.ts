@@ -40,6 +40,7 @@ export interface Student extends TenantEntity {
   roll_number: number;
   first_name: string;
   last_name?: string;
+  full_name?: string;
   father_name: string;
   mother_name: string;
   phone_number: string; // 11 digits
@@ -48,6 +49,8 @@ export interface Student extends TenantEntity {
   date_of_birth?: string;
   address?: string;
   student_image?: string | null;
+  card_rfid?: string | null;
+  biometric_id?: string | null;
   parent_image?: string | null;
   father_image?: string | null;
   mother_image?: string | null;

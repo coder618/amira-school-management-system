@@ -17,7 +17,9 @@ import {
   Globe,
   Loader2,
   KeyRound,
+  Cpu,
 } from 'lucide-react';
+import { MultiTenantDeviceManagement } from '../../attendance';
 
 export const SuperAdminDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -25,6 +27,7 @@ export const SuperAdminDashboard: React.FC = () => {
 
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
   const [lastOnboarded, setLastOnboarded] = useState<CreateSchoolResponse | null>(null);
+  const [activeTab, setActiveTab] = useState<'schools' | 'devices'>('schools');
 
   // Role Gate check: visible only when logged in as a SuperAdmin
   const isSuperAdmin = user?.role === 'SuperAdmin';
@@ -81,7 +84,40 @@ export const SuperAdminDashboard: React.FC = () => {
         </button>
       </div>
 
-      {/* Success Notification for newly onboarded school */}
+      {/* Sub-Navigation Tabs */}
+      <div className="flex items-center gap-2 p-1.5 bg-slate-100 rounded-2xl border border-slate-200">
+        <button
+          type="button"
+          onClick={() => setActiveTab('schools')}
+          className={`inline-flex items-center gap-2 px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl transition-all cursor-pointer ${
+            activeTab === 'schools'
+              ? 'bg-white text-indigo-700 shadow-xs'
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <Building2 className="w-4 h-4 text-indigo-600" />
+          <span>Institutions Directory ({totalCount})</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('devices')}
+          className={`inline-flex items-center gap-2 px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl transition-all cursor-pointer ${
+            activeTab === 'devices'
+              ? 'bg-white text-indigo-700 shadow-xs'
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <Cpu className="w-4 h-4 text-indigo-600" />
+          <span>Multi-Tenant Attendance Devices</span>
+        </button>
+      </div>
+
+      {activeTab === 'devices' ? (
+        <MultiTenantDeviceManagement />
+      ) : (
+        <>
+          {/* Success Notification for newly onboarded school */}
       {lastOnboarded && (
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-5 shadow-xs animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="flex items-start gap-3">
@@ -299,6 +335,8 @@ export const SuperAdminDashboard: React.FC = () => {
           </div>
         )}
       </div>
+      </>
+      )}
 
       {/* Registration Modal */}
       <RegisterSchoolModal

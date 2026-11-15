@@ -8,6 +8,8 @@ export interface Teacher extends TenantEntity {
   department?: string; // Science, Commerce, Arts
   qualification?: string; // B.Sc, M.Sc, B.Ed
   phone_number?: string;
+  card_rfid?: string | null;
+  biometric_id?: string | null;
   joining_date?: string;
   profile_picture?: string | null;
   profile_picture_url?: string | null;
@@ -34,6 +36,8 @@ export interface TeacherPayload {
   department?: string;
   qualification?: string;
   phone_number?: string;
+  card_rfid?: string | null;
+  biometric_id?: string | null;
   joining_date?: string;
   profile_picture?: File | string | null;
   image?: File | string | null;

@@ -15,6 +15,8 @@ import {
   GraduationCap,
   Phone,
   Save,
+  CreditCard,
+  Fingerprint,
 } from 'lucide-react';
 
 export const EditStudentPage: React.FC = () => {
@@ -44,6 +46,8 @@ export const EditStudentPage: React.FC = () => {
     shift_id: 0,
     date_of_birth: '',
     address: '',
+    card_rfid: '',
+    biometric_id: '',
     enrollment_date: '',
   });
 
@@ -99,6 +103,8 @@ export const EditStudentPage: React.FC = () => {
           shift_id: studentData.shift_id || (shiftsData[0]?.id || 0),
           date_of_birth: studentData.date_of_birth || '',
           address: studentData.address || '',
+          card_rfid: studentData.card_rfid || '',
+          biometric_id: studentData.biometric_id || '',
           enrollment_date: studentData.enrollment_date || '',
         });
 
@@ -237,6 +243,8 @@ export const EditStudentPage: React.FC = () => {
         if (formData.shift_id) data.append('shift_id', String(formData.shift_id));
         if (formData.date_of_birth) data.append('date_of_birth', formData.date_of_birth);
         if (formData.address) data.append('address', formData.address);
+        if (formData.card_rfid !== undefined) data.append('card_rfid', formData.card_rfid);
+        if (formData.biometric_id !== undefined) data.append('biometric_id', formData.biometric_id);
         if (formData.enrollment_date) data.append('enrollment_date', formData.enrollment_date);
 
         if (studentImageFile) {
@@ -627,6 +635,34 @@ export const EditStudentPage: React.FC = () => {
                 <option value="suspended">Suspended</option>
                 <option value="graduated">Graduated</option>
               </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
+                <CreditCard className="w-3.5 h-3.5 text-indigo-500" />
+                RFID Smart Card UID
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. RFID-998877"
+                value={formData.card_rfid}
+                onChange={(e) => setFormData({ ...formData, card_rfid: e.target.value })}
+                className="w-full rounded-xl border border-slate-300 py-2 px-3 text-sm font-mono bg-white text-slate-800 focus:border-indigo-600 focus:outline-hidden"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
+                <Fingerprint className="w-3.5 h-3.5 text-indigo-500" />
+                Biometric Device ID
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. BIO-101"
+                value={formData.biometric_id}
+                onChange={(e) => setFormData({ ...formData, biometric_id: e.target.value })}
+                className="w-full rounded-xl border border-slate-300 py-2 px-3 text-sm font-mono bg-white text-slate-800 focus:border-indigo-600 focus:outline-hidden"
+              />
             </div>
           </div>
         </div>

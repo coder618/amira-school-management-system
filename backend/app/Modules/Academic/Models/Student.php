@@ -39,6 +39,8 @@ class Student extends Model
         'parent_image',
         'father_image',
         'mother_image',
+        'card_rfid',
+        'biometric_id',
         'status',
         'enrollment_date',
     ];

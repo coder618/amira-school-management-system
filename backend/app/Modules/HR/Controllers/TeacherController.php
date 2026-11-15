@@ -104,6 +104,8 @@ class TeacherController extends Controller
                 'department' => $validated['department'] ?? 'General',
                 'qualification' => $validated['qualification'] ?? null,
                 'phone_number' => $validated['phone_number'] ?? null,
+                'card_rfid' => $validated['card_rfid'] ?? null,
+                'biometric_id' => $validated['biometric_id'] ?? null,
                 'joining_date' => $validated['joining_date'] ?? now()->toDateString(),
             ]);
 

@@ -11,6 +11,7 @@ import {
   AlertCircle,
   CheckCircle,
   Users,
+  Cpu,
 } from 'lucide-react';
 
 export const AttendanceSheet: React.FC = () => {
@@ -199,9 +200,20 @@ export const AttendanceSheet: React.FC = () => {
                       <div className="font-semibold text-slate-900">
                         {row.student.first_name} {row.student.last_name}
                       </div>
-                      <span className="text-xs text-slate-400 font-mono">
-                        {row.student.student_id}
-                      </span>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <span className="text-xs text-slate-400 font-mono">
+                          {row.student.student_id}
+                        </span>
+                        {row.remarks && (row.remarks.toLowerCase().includes('device') || row.remarks.toLowerCase().includes('auto-recorded')) && (
+                          <span
+                            className="inline-flex items-center gap-1 text-[10px] font-medium text-indigo-700 bg-indigo-50 border border-indigo-200/80 px-1.5 py-0.5 rounded-md"
+                            title={row.remarks}
+                          >
+                            <Cpu className="w-3 h-3 text-indigo-500" />
+                            Device Recorded
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="py-3 px-4 font-mono text-xs text-slate-600">
                       {row.student.phone_number}

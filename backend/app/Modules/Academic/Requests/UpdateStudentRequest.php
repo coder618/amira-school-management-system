@@ -48,6 +48,8 @@ class UpdateStudentRequest extends FormRequest
             'student_image' => ['nullable', $imageRule],
             'parent_image' => ['nullable', $imageRule],
             'father_image' => ['nullable', $imageRule],
+            'card_rfid' => 'nullable|string|max:100',
+            'biometric_id' => 'nullable|string|max:100',
             'mother_image' => ['nullable', $imageRule],
         ];
     }

@@ -24,6 +24,8 @@ class Teacher extends Model
         'department',
         'qualification',
         'phone_number',
+        'card_rfid',
+        'biometric_id',
         'joining_date',
     ];
 

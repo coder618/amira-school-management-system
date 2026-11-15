@@ -23,6 +23,8 @@ import {
   UploadCloud,
   ShieldAlert,
   Save,
+  CreditCard,
+  Fingerprint,
 } from 'lucide-react';
 
 export const EditTeacherPage: React.FC = () => {
@@ -44,6 +46,8 @@ export const EditTeacherPage: React.FC = () => {
     qualification: '',
     phone_number: '017',
     joining_date: '',
+    card_rfid: '',
+    biometric_id: '',
     password: '',
   });
 
@@ -73,6 +77,8 @@ export const EditTeacherPage: React.FC = () => {
           qualification: data.qualification || '',
           phone_number: data.phone_number || '',
           joining_date: data.joining_date || '',
+          card_rfid: data.card_rfid || '',
+          biometric_id: data.biometric_id || '',
           password: '',
         });
         setCurrentImageUrl(data.profile_picture_url || data.user?.profile_picture_url || null);
@@ -155,6 +161,8 @@ export const EditTeacherPage: React.FC = () => {
       if (formData.qualification) data.append('qualification', formData.qualification.trim());
       if (formData.phone_number) data.append('phone_number', formData.phone_number.trim());
       if (formData.joining_date) data.append('joining_date', formData.joining_date);
+      if (formData.card_rfid !== undefined) data.append('card_rfid', formData.card_rfid.trim());
+      if (formData.biometric_id !== undefined) data.append('biometric_id', formData.biometric_id.trim());
       if (formData.password.trim()) data.append('password', formData.password.trim());
 
       if (newImageFile) {
@@ -525,6 +533,35 @@ export const EditTeacherPage: React.FC = () => {
                     className="w-full rounded-xl border border-slate-300 py-2.5 pl-10 pr-3.5 text-sm text-slate-900 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 focus:outline-hidden"
                   />
                 </div>
+              </div>
+
+              {/* Attendance Card & Biometric IDs */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase mb-1 flex items-center gap-1.5">
+                  <CreditCard className="w-3.5 h-3.5 text-indigo-500" />
+                  RFID Smart Card UID
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. TEACH-CARD-8899"
+                  value={formData.card_rfid}
+                  onChange={(e) => setFormData({ ...formData, card_rfid: e.target.value })}
+                  className="w-full rounded-xl border border-slate-300 py-2.5 px-3.5 text-sm font-mono text-slate-900 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 focus:outline-hidden"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase mb-1 flex items-center gap-1.5">
+                  <Fingerprint className="w-3.5 h-3.5 text-indigo-500" />
+                  Biometric Terminal ID
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. BIO-T-100"
+                  value={formData.biometric_id}
+                  onChange={(e) => setFormData({ ...formData, biometric_id: e.target.value })}
+                  className="w-full rounded-xl border border-slate-300 py-2.5 px-3.5 text-sm font-mono text-slate-900 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 focus:outline-hidden"
+                />
               </div>
 
               <div>

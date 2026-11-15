@@ -73,6 +73,7 @@ export const App: React.FC = () => {
               <Route path="/profile/:id" element={<UserProfilePage />} />
               <Route path="/super-admin" element={<SuperAdmin />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/settings/devices" element={<Navigate to="/settings?tab=devices" replace />} />
             </Route>
           </Route>
 

@@ -36,6 +36,8 @@ class StoreTeacherRequest extends FormRequest
             'department' => 'nullable|string|max:100',
             'qualification' => 'nullable|string|max:150',
             'phone_number' => ['nullable', 'string', 'regex:/^01[3-9]\d{8}$/'],
+            'card_rfid' => 'nullable|string|max:100',
+            'biometric_id' => 'nullable|string|max:100',
             'joining_date' => 'nullable|date',
             'password' => 'nullable|string|min:6',
             'profile_picture' => ['nullable', $imageRule],

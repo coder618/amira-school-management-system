@@ -22,6 +22,8 @@ import {
   EyeOff,
   UploadCloud,
   ShieldAlert,
+  CreditCard,
+  Fingerprint,
 } from 'lucide-react';
 
 export const AddTeacherPage: React.FC = () => {
@@ -38,6 +40,8 @@ export const AddTeacherPage: React.FC = () => {
     qualification: '',
     phone_number: '017',
     joining_date: new Date().toISOString().split('T')[0],
+    card_rfid: '',
+    biometric_id: '',
     password: 'teacher123',
   });
 
@@ -112,6 +116,8 @@ export const AddTeacherPage: React.FC = () => {
       if (formData.qualification) data.append('qualification', formData.qualification.trim());
       if (formData.phone_number) data.append('phone_number', formData.phone_number.trim());
       if (formData.joining_date) data.append('joining_date', formData.joining_date);
+      if (formData.card_rfid) data.append('card_rfid', formData.card_rfid.trim());
+      if (formData.biometric_id) data.append('biometric_id', formData.biometric_id.trim());
       if (formData.password) data.append('password', formData.password);
 
       if (profileImageFile) {
@@ -460,6 +466,35 @@ export const AddTeacherPage: React.FC = () => {
                     className="w-full rounded-xl border border-slate-300 py-2.5 pl-10 pr-3.5 text-sm text-slate-900 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 focus:outline-hidden"
                   />
                 </div>
+              </div>
+
+              {/* Attendance Card & Biometric IDs */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase mb-1 flex items-center gap-1.5">
+                  <CreditCard className="w-3.5 h-3.5 text-indigo-500" />
+                  RFID Smart Card UID
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. TEACH-CARD-8899"
+                  value={formData.card_rfid}
+                  onChange={(e) => setFormData({ ...formData, card_rfid: e.target.value })}
+                  className="w-full rounded-xl border border-slate-300 py-2.5 px-3.5 text-sm font-mono text-slate-900 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 focus:outline-hidden"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase mb-1 flex items-center gap-1.5">
+                  <Fingerprint className="w-3.5 h-3.5 text-indigo-500" />
+                  Biometric Terminal ID
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. BIO-T-100"
+                  value={formData.biometric_id}
+                  onChange={(e) => setFormData({ ...formData, biometric_id: e.target.value })}
+                  className="w-full rounded-xl border border-slate-300 py-2.5 px-3.5 text-sm font-mono text-slate-900 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 focus:outline-hidden"
+                />
               </div>
 
               {/* Initial Password */}

@@ -49,6 +49,8 @@ class StoreStudentRequest extends FormRequest
             'parent_image' => ['nullable', $imageRule],
             'father_image' => ['nullable', $imageRule],
             'mother_image' => ['nullable', $imageRule],
+            'card_rfid' => 'nullable|string|max:100',
+            'biometric_id' => 'nullable|string|max:100',
             'password' => 'nullable|string|min:6',
         ];
     }
