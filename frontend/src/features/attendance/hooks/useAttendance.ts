@@ -8,6 +8,9 @@ export interface StudentAttendanceRow {
   student: Student;
   status: AttendanceStatus;
   remarks: string;
+  in_time_formatted?: string | null;
+  out_time_formatted?: string | null;
+  punch_count?: number;
 }
 
 export const useAttendance = () => {
@@ -60,9 +63,21 @@ export const useAttendance = () => {
         attendanceApi.getAttendanceList({ section_id: selectedSectionId, date: selectedDate }),
       ]);
 
-      const attendanceMap = new Map<number, { status: AttendanceStatus; remarks: string }>();
+      const attendanceMap = new Map<number, {
+        status: AttendanceStatus;
+        remarks: string;
+        in_time_formatted?: string | null;
+        out_time_formatted?: string | null;
+        punch_count?: number;
+      }>();
       existingData.forEach((a) => {
-        attendanceMap.set(a.student_id, { status: a.status, remarks: a.remarks || '' });
+        attendanceMap.set(a.student_id, {
+          status: a.status,
+          remarks: a.remarks || '',
+          in_time_formatted: a.in_time_formatted,
+          out_time_formatted: a.out_time_formatted,
+          punch_count: a.punch_count,
+        });
       });
 
       const initialRows: StudentAttendanceRow[] = studentsData.map((s) => {
@@ -71,6 +86,9 @@ export const useAttendance = () => {
           student: s,
           status: existing ? existing.status : 'Present',
           remarks: existing ? existing.remarks : '',
+          in_time_formatted: existing?.in_time_formatted,
+          out_time_formatted: existing?.out_time_formatted,
+          punch_count: existing?.punch_count ?? 0,
         };
       });
 

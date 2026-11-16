@@ -364,4 +364,92 @@ class AttendanceDeviceTest extends TestCase
 
         $forbiddenResponse->assertStatus(403);
     }
+
+    public function test_multiple_punches_stored_and_earliest_is_in_time_latest_is_out_time(): void
+    {
+        $device = AttendanceDevice::create([
+            'school_id' => $this->school->id,
+            'name' => 'Main Gate Punch Unit',
+            'device_id' => 'DEV-PUNCH-01',
+            'api_token' => AttendanceDevice::generateApiToken(),
+            'status' => 'active',
+        ]);
+
+        $today = now()->toDateString();
+        $morningPunch = "{$today} 08:15:00";
+        $lunchPunch = "{$today} 12:30:00";
+        $eveningPunch = "{$today} 16:45:00";
+
+        // Punch 1: Morning Check-in
+        $resp1 = $this->withHeaders(['X-Device-Token' => $device->api_token])
+            ->postJson('/api/attendance/device/punch', [
+                'identifier' => 'RFID-998877',
+                'timestamp' => $morningPunch,
+            ]);
+
+        $resp1->assertStatus(200)
+            ->assertJsonPath('status', 'success')
+            ->assertJsonPath('punch_count_today', 1)
+            ->assertJsonPath('in_time', '08:15 AM')
+            ->assertJsonPath('out_time', null);
+
+        // Punch 2: Lunch Break
+        $resp2 = $this->withHeaders(['X-Device-Token' => $device->api_token])
+            ->postJson('/api/attendance/device/punch', [
+                'identifier' => 'RFID-998877',
+                'timestamp' => $lunchPunch,
+            ]);
+
+        $resp2->assertStatus(200)
+            ->assertJsonPath('punch_count_today', 2)
+            ->assertJsonPath('in_time', '08:15 AM')
+            ->assertJsonPath('out_time', '12:30 PM');
+
+        // Punch 3: Evening Departure
+        $resp3 = $this->withHeaders(['X-Device-Token' => $device->api_token])
+            ->postJson('/api/attendance/device/punch', [
+                'identifier' => 'RFID-998877',
+                'timestamp' => $eveningPunch,
+            ]);
+
+        $resp3->assertStatus(200)
+            ->assertJsonPath('punch_count_today', 3)
+            ->assertJsonPath('in_time', '08:15 AM')
+            ->assertJsonPath('out_time', '04:45 PM');
+
+        // Verify ALL 3 records exist in attendance_device_logs database
+        $this->assertDatabaseCount('attendance_device_logs', 3);
+
+        // Verify attendance record has earliest as in_time and latest as out_time
+        $this->assertDatabaseHas('attendances', [
+            'student_id' => $this->student->id,
+            'date' => $today,
+            'status' => 'Present',
+            'in_time' => '08:15:00',
+            'out_time' => '16:45:00',
+        ]);
+
+        // Verify user-punches query endpoint
+        $queryResp = $this->actingAs($this->admin, 'sanctum')
+            ->getJson("/api/attendance/device/user-punches?student_id={$this->student->id}&date={$today}");
+
+        $queryResp->assertStatus(200)
+            ->assertJsonPath('total_punches', 3)
+            ->assertJsonPath('in_time', '08:15 AM')
+            ->assertJsonPath('out_time', '04:45 PM')
+            ->assertJsonCount(3, 'punches');
+
+        // Verify daily section attendance returns formatted in_time and out_time
+        $sectionResp = $this->actingAs($this->admin, 'sanctum')
+            ->getJson("/api/attendances?academic_class_id={$this->classLevel->id}&section_id={$this->section->id}&date={$today}");
+
+        $sectionResp->assertStatus(200);
+        $studentAttendance = collect($sectionResp->json())
+            ->firstWhere('student_id', $this->student->id);
+
+        $this->assertNotNull($studentAttendance);
+        $this->assertEquals('08:15 AM', $studentAttendance['in_time_formatted']);
+        $this->assertEquals('04:45 PM', $studentAttendance['out_time_formatted']);
+        $this->assertEquals(3, $studentAttendance['punch_count']);
+    }
 }

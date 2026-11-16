@@ -123,6 +123,8 @@ export interface StudentAttendanceHistoryItem {
   date: string;
   day: string;
   status: 'Present' | 'Absent' | 'Late' | 'Holiday';
+  in_time?: string | null;
+  out_time?: string | null;
   remarks: string;
   is_holiday: boolean;
   holiday?: {

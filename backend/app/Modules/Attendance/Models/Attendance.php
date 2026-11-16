@@ -22,6 +22,8 @@ class Attendance extends Model
         'section_id',
         'date',
         'status', // Present, Absent, Late
+        'in_time',
+        'out_time',
         'remarks',
     ];
 

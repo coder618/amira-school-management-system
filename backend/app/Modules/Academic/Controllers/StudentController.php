@@ -8,6 +8,7 @@ use App\Modules\Academic\Models\TeacherNote;
 use App\Modules\Academic\Requests\StoreStudentRequest;
 use App\Modules\Academic\Requests\UpdateStudentRequest;
 use App\Modules\Attendance\Models\Attendance;
+use App\Modules\Attendance\Models\AttendanceDeviceLog;
 use App\Modules\Attendance\Models\Holiday;
 use App\Modules\Core\Enums\Role;
 use App\Modules\Core\Models\School;
@@ -282,6 +283,15 @@ class StudentController extends Controller
             })
             ->get();
 
+        // Device punch logs to accurately resolve In Time & Out Time
+        $deviceLogs = AttendanceDeviceLog::where('student_id', $student->id)
+            ->whereDate('punched_at', '>=', $startDate)
+            ->whereDate('punched_at', '<=', $endDate)
+            ->where('status', 'success')
+            ->orderBy('punched_at', 'asc')
+            ->get()
+            ->groupBy(fn ($log) => Carbon::parse($log->punched_at)->toDateString());
+
         $attendanceHistory = [];
         for ($i = 0; $i < 10; $i++) {
             $curDate = $today->copy()->subDays($i);
@@ -295,6 +305,28 @@ class StudentController extends Controller
             });
 
             $att = $attendances->get($dateStr);
+            $dayLogs = $deviceLogs->get($dateStr);
+            $inTime = null;
+            $outTime = null;
+
+            if ($dayLogs && $dayLogs->count() > 0) {
+                // First punch counts as In Time
+                $firstPunch = $dayLogs->first();
+                $inTime = Carbon::parse($firstPunch->punched_at)->format('h:i A');
+
+                // If multiple punches exist, last punch counts as Out Time
+                if ($dayLogs->count() > 1) {
+                    $lastPunch = $dayLogs->last();
+                    $outTime = Carbon::parse($lastPunch->punched_at)->format('h:i A');
+                }
+            } elseif ($att && ($att->in_time || $att->out_time)) {
+                $inTime = $att->in_time ? Carbon::parse($att->in_time)->format('h:i A') : null;
+                $outTime = $att->out_time ? Carbon::parse($att->out_time)->format('h:i A') : null;
+            } elseif ($att && $att->status === 'Present') {
+                if (preg_match('/at (\d{1,2}:\d{2}(?::\d{2})?\s*(?:AM|PM)?)/i', $att->remarks ?? '', $matches)) {
+                    $inTime = Carbon::parse($matches[1])->format('h:i A');
+                }
+            }
 
             if ($holiday) {
                 $status = 'Holiday';
@@ -312,6 +344,8 @@ class StudentController extends Controller
                 'date' => $dateStr,
                 'day' => $dayOfWeek,
                 'status' => $status,
+                'in_time' => $inTime,
+                'out_time' => $outTime,
                 'remarks' => $remarks,
                 'is_holiday' => $holiday !== null,
                 'holiday' => $holiday ? ['title' => $holiday->title, 'type' => $holiday->type] : null,

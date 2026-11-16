@@ -110,6 +110,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/attendances/stats', [AttendanceController::class, 'stats']);
 
     // 3.1 External Attendance Devices Management & Telemetry
+    Route::get('/attendance/device/user-punches', [AttendanceDeviceController::class, 'userPunches']);
     Route::apiResource('attendance/devices', AttendanceDeviceController::class)->parameters(['devices' => 'device']);
     Route::post('/attendance/devices/{device}/regenerate-token', [AttendanceDeviceController::class, 'regenerateToken']);
     Route::get('/attendance/device-logs', [AttendanceDeviceController::class, 'logs']);

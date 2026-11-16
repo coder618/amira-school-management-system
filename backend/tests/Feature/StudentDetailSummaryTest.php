@@ -91,7 +91,7 @@ class StudentDetailSummaryTest extends TestCase
         $threeDaysAgo = Carbon::today()->subDays(3)->toDateString();
         $fiveDaysAgo = Carbon::today()->subDays(5)->toDateString();
 
-        // 1. Student was Present today
+        // 1. Student was Present today with punches
         Attendance::create([
             'school_id' => $this->school->id,
             'academic_year_id' => $this->year->id,
@@ -99,6 +99,32 @@ class StudentDetailSummaryTest extends TestCase
             'section_id' => $this->student->section_id,
             'date' => $today,
             'status' => 'Present',
+            'in_time' => '08:30:00',
+            'out_time' => '16:00:00',
+        ]);
+
+        // Device logs for yesterday: first punch at 08:45 AM, last punch at 03:30 PM
+        $yesterday = Carbon::today()->subDays(1)->toDateString();
+        \App\Modules\Attendance\Models\AttendanceDeviceLog::create([
+            'school_id' => $this->school->id,
+            'student_id' => $this->student->id,
+            'raw_identifier' => 'RFID-12345',
+            'punched_at' => Carbon::parse("{$yesterday} 08:45:00"),
+            'status' => 'success',
+        ]);
+        \App\Modules\Attendance\Models\AttendanceDeviceLog::create([
+            'school_id' => $this->school->id,
+            'student_id' => $this->student->id,
+            'raw_identifier' => 'RFID-12345',
+            'punched_at' => Carbon::parse("{$yesterday} 12:30:00"),
+            'status' => 'success',
+        ]);
+        \App\Modules\Attendance\Models\AttendanceDeviceLog::create([
+            'school_id' => $this->school->id,
+            'student_id' => $this->student->id,
+            'raw_identifier' => 'RFID-12345',
+            'punched_at' => Carbon::parse("{$yesterday} 15:30:00"),
+            'status' => 'success',
         ]);
 
         // 2. Three days ago was an institutional holiday
@@ -118,9 +144,16 @@ class StudentDetailSummaryTest extends TestCase
 
         $data = collect($response->json('data'));
 
-        // Today must be Present
+        // Today must be Present with in_time and out_time
         $todayRow = $data->firstWhere('date', $today);
         $this->assertEquals('Present', $todayRow['status']);
+        $this->assertEquals('08:30 AM', $todayRow['in_time']);
+        $this->assertEquals('04:00 PM', $todayRow['out_time']);
+
+        // Yesterday must have first punch as in_time and last punch as out_time
+        $yesterdayRow = $data->firstWhere('date', $yesterday);
+        $this->assertEquals('08:45 AM', $yesterdayRow['in_time']);
+        $this->assertEquals('03:30 PM', $yesterdayRow['out_time']);
 
         // Three days ago must be Holiday with title
         $holidayRow = $data->firstWhere('date', $threeDaysAgo);
@@ -130,6 +163,8 @@ class StudentDetailSummaryTest extends TestCase
         // Five days ago had no attendance record and was not a holiday -> must be marked Absent
         $absentRow = $data->firstWhere('date', $fiveDaysAgo);
         $this->assertEquals('Absent', $absentRow['status']);
+        $this->assertNull($absentRow['in_time']);
+        $this->assertNull($absentRow['out_time']);
     }
 
     public function test_can_add_and_list_teacher_notes(): void

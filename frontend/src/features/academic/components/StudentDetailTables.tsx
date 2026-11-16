@@ -23,6 +23,8 @@ import {
   ChevronRight,
   FileText,
   Check,
+  LogIn,
+  LogOut,
 } from 'lucide-react';
 
 interface StudentDetailTablesProps {
@@ -277,6 +279,8 @@ export const StudentDetailTables: React.FC<StudentDetailTablesProps> = ({
                 <tr>
                   <th className="py-3 px-4">Date & Day</th>
                   <th className="py-3 px-4">Attendance Status</th>
+                  <th className="py-3 px-4">In Time (First)</th>
+                  <th className="py-3 px-4">Out Time (Last)</th>
                   <th className="py-3 px-4">Remarks / Calendar Event</th>
                   <th className="py-3 px-4 text-right">Verification</th>
                 </tr>
@@ -289,6 +293,26 @@ export const StudentDetailTables: React.FC<StudentDetailTablesProps> = ({
                       <span className="text-slate-400 font-normal ml-2">({att.day})</span>
                     </td>
                     <td className="py-3 px-4">{getAttendanceStatusBadge(att)}</td>
+                    <td className="py-3 px-4 whitespace-nowrap">
+                      {att.in_time ? (
+                        <span className="font-mono text-emerald-800 font-bold bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md text-[11px] inline-flex items-center gap-1">
+                          <LogIn className="w-3 h-3 text-emerald-600" />
+                          <span>{att.in_time}</span>
+                        </span>
+                      ) : (
+                        <span className="text-slate-400 font-mono text-[11px]">—</span>
+                      )}
+                    </td>
+                    <td className="py-3 px-4 whitespace-nowrap">
+                      {att.out_time ? (
+                        <span className="font-mono text-indigo-800 font-bold bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-md text-[11px] inline-flex items-center gap-1">
+                          <LogOut className="w-3 h-3 text-indigo-600" />
+                          <span>{att.out_time}</span>
+                        </span>
+                      ) : (
+                        <span className="text-slate-400 font-mono text-[11px]">—</span>
+                      )}
+                    </td>
                     <td className="py-3 px-4 text-slate-600">
                       {att.is_holiday ? (
                         <span className="font-semibold text-indigo-700">

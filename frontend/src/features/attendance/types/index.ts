@@ -12,6 +12,12 @@ export interface Attendance extends TenantEntity {
   status: AttendanceStatus;
   remarks?: string;
   student?: Student;
+  in_time?: string | null;
+  out_time?: string | null;
+  in_time_formatted?: string | null;
+  out_time_formatted?: string | null;
+  punch_count?: number;
+  punches?: string[];
 }
 
 export interface AttendanceSubmissionItem {

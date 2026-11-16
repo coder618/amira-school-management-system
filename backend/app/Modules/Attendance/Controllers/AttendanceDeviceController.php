@@ -206,6 +206,7 @@ class AttendanceDeviceController extends Controller
             'card_number' => 'nullable|string',
             'user_code' => 'nullable|string',
             'punched_at' => 'nullable|date',
+            'timestamp' => 'nullable|date',
             'punch_type' => 'nullable|string|in:check_in,check_out,auto',
             'verification_method' => 'nullable|string|in:card,fingerprint,face,barcode_qr,manual,other',
             'device_identifier' => 'nullable|string',
@@ -440,6 +441,60 @@ class AttendanceDeviceController extends Controller
         return response()->json([
             'message' => "Assigned card RFID to user {$user->name}.",
             'target' => $user,
+        ]);
+    }
+
+    /**
+     * Get all punch records for a specific user, teacher, or student on a date,
+     * keeping all records and considering the first punch as in_time and the last punch as out_time.
+     */
+    public function userPunches(Request $request): JsonResponse
+    {
+        $request->validate([
+            'date' => 'nullable|date',
+            'student_id' => 'nullable|exists:students,id',
+            'teacher_id' => 'nullable|exists:teachers,id',
+            'user_id' => 'nullable|exists:users,id',
+        ]);
+
+        $schoolId = auth()->user()?->school_id ?? 1;
+        $date = $request->query('date', Carbon::today()->toDateString());
+
+        $query = AttendanceDeviceLog::with(['device'])
+            ->where('school_id', $schoolId)
+            ->whereDate('punched_at', $date)
+            ->where('status', 'success')
+            ->orderBy('punched_at', 'asc');
+
+        if ($request->filled('student_id')) {
+            $query->where('student_id', $request->query('student_id'));
+        } elseif ($request->filled('teacher_id')) {
+            $query->where('teacher_id', $request->query('teacher_id'));
+        } elseif ($request->filled('user_id')) {
+            $query->where('user_id', $request->query('user_id'));
+        }
+
+        $logs = $query->get();
+
+        $firstPunch = $logs->first();
+        $lastPunch = $logs->count() > 1 ? $logs->last() : null;
+
+        return response()->json([
+            'date' => $date,
+            'total_punches' => $logs->count(),
+            'in_time' => $firstPunch ? Carbon::parse($firstPunch->punched_at)->format('h:i A') : null,
+            'out_time' => $lastPunch ? Carbon::parse($lastPunch->punched_at)->format('h:i A') : null,
+            'first_punch_raw' => $firstPunch?->punched_at,
+            'last_punch_raw' => $lastPunch?->punched_at,
+            'punches' => $logs->map(fn ($l, $index) => [
+                'id' => $l->id,
+                'punch_number' => $index + 1,
+                'time' => Carbon::parse($l->punched_at)->format('h:i:s A'),
+                'type' => $index === 0 ? 'check_in' : ($index === $logs->count() - 1 ? 'check_out' : 'intermediate'),
+                'device' => $l->device?->name ?? 'External Device',
+                'verification_method' => $l->verification_method,
+            ]),
+            'logs' => $logs,
         ]);
     }
 

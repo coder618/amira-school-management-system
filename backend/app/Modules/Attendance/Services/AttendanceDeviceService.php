@@ -57,8 +57,9 @@ class AttendanceDeviceService
             ];
         }
 
-        $punchedAt = ! empty($data['punched_at'])
-            ? Carbon::parse($data['punched_at'])
+        $rawTime = $data['punched_at'] ?? $data['timestamp'] ?? null;
+        $punchedAt = ! empty($rawTime)
+            ? Carbon::parse($rawTime)
             : Carbon::now();
 
         $punchType = $data['punch_type'] ?? 'check_in';
@@ -210,26 +211,8 @@ class AttendanceDeviceService
 
         $deviceName = $device ? $device->name : 'External Device';
         $timeStr = $punchedAt->format('h:i:s A');
-        $remarks = "Auto-recorded via {$deviceName} ({$verificationMethod}) at {$timeStr}";
 
-        // Upsert into main attendances table
-        $attendance = Attendance::updateOrCreate(
-            [
-                'school_id' => $schoolId,
-                'academic_year_id' => $academicYearId,
-                'student_id' => $student->id,
-                'date' => $date,
-            ],
-            [
-                'section_id' => $student->section_id,
-                'status' => $status,
-                'remarks' => $remarks,
-            ]
-        );
-
-        $attendance->load('student.school');
-
-        // Log entry
+        // 1. Keep ALL records in database: log this device punch event first
         $log = AttendanceDeviceLog::create([
             'school_id' => $schoolId,
             'attendance_device_id' => $device?->id,
@@ -243,13 +226,58 @@ class AttendanceDeviceService
             'punch_type' => $punchType,
             'verification_method' => $verificationMethod,
             'status' => 'success',
-            'response_message' => "Attendance recorded for {$student->full_name} ({$status})",
+            'response_message' => "Attendance punch recorded for {$student->full_name}",
             'payload_json' => $rawData,
         ]);
+
+        // 2. Query ALL punches today for this student, ordered chronologically
+        $todayPunches = AttendanceDeviceLog::where('school_id', $schoolId)
+            ->where('student_id', $student->id)
+            ->whereDate('punched_at', $date)
+            ->where('status', 'success')
+            ->orderBy('punched_at', 'asc')
+            ->get();
+
+        // First punch of the day is considered In Time; last punch is considered Out Time
+        $firstPunch = $todayPunches->first();
+        $inTime = Carbon::parse($firstPunch->punched_at)->format('H:i:s');
+        $outTime = ($todayPunches->count() > 1)
+            ? Carbon::parse($todayPunches->last()->punched_at)->format('H:i:s')
+            : null;
+
+        $punchTypeResolved = ($todayPunches->count() === 1) ? 'check_in' : 'check_out';
+        $log->update([
+            'punch_type' => $punchTypeResolved,
+            'response_message' => "Punch #{$todayPunches->count()} for {$student->full_name} ({$status}) at {$timeStr}",
+        ]);
+
+        $remarks = "Recorded via {$deviceName} ({$verificationMethod}) [{$todayPunches->count()} punch(es) today]";
+
+        // 3. Upsert into main attendances table with in_time and out_time
+        $attendance = Attendance::updateOrCreate(
+            [
+                'school_id' => $schoolId,
+                'academic_year_id' => $academicYearId,
+                'student_id' => $student->id,
+                'date' => $date,
+            ],
+            [
+                'section_id' => $student->section_id,
+                'status' => $status,
+                'in_time' => $inTime,
+                'out_time' => $outTime,
+                'remarks' => $remarks,
+            ]
+        );
+
+        $attendance->load('student.school');
 
         if ($device) {
             $device->update(['last_sync_at' => Carbon::now()]);
         }
+
+        $formattedInTime = Carbon::parse($inTime)->format('h:i A');
+        $formattedOutTime = $outTime ? Carbon::parse($outTime)->format('h:i A') : null;
 
         return [
             'status' => 'success',
@@ -261,10 +289,13 @@ class AttendanceDeviceService
             'section' => $student->section?->name ?? 'N/A',
             'roll_number' => $student->roll_number,
             'attendance_status' => $status,
+            'in_time' => $formattedInTime,
+            'out_time' => $formattedOutTime,
+            'punch_count_today' => $todayPunches->count(),
             'punched_at' => $punchedAt->toDateTimeString(),
             'device' => $deviceName,
             'photo_url' => $student->student_image_url,
-            'message' => "Welcome {$student->full_name}! Marked {$status} at {$timeStr}.",
+            'message' => "Welcome {$student->full_name}! Punch #{$todayPunches->count()} logged (In: {$formattedInTime}" . ($formattedOutTime ? ", Out: {$formattedOutTime}" : '') . ").",
             'log_id' => $log->id,
             'attendance_id' => $attendance->id,
         ];
@@ -285,8 +316,10 @@ class AttendanceDeviceService
     ): array {
         $deviceName = $device ? $device->name : 'External Device';
         $timeStr = $punchedAt->format('h:i:s A');
+        $date = $punchedAt->toDateString();
         $name = $teacher->user?->name ?? 'Teacher ' . $teacher->employee_id;
 
+        // 1. Keep ALL punch records in database
         $log = AttendanceDeviceLog::create([
             'school_id' => $schoolId,
             'attendance_device_id' => $device?->id,
@@ -304,6 +337,26 @@ class AttendanceDeviceService
             'payload_json' => $rawData,
         ]);
 
+        // 2. Query ALL punches today for this teacher to resolve first as In-Time and last as Out-Time
+        $todayPunches = AttendanceDeviceLog::where('school_id', $schoolId)
+            ->where('teacher_id', $teacher->id)
+            ->whereDate('punched_at', $date)
+            ->where('status', 'success')
+            ->orderBy('punched_at', 'asc')
+            ->get();
+
+        $firstPunch = $todayPunches->first();
+        $inTime = Carbon::parse($firstPunch->punched_at)->format('h:i A');
+        $outTime = ($todayPunches->count() > 1)
+            ? Carbon::parse($todayPunches->last()->punched_at)->format('h:i A')
+            : null;
+
+        $resolvedPunchType = ($todayPunches->count() === 1) ? 'check_in' : 'check_out';
+        $log->update([
+            'punch_type' => $resolvedPunchType,
+            'response_message' => "Staff punch #{$todayPunches->count()} for {$name} ({$teacher->designation}) at {$timeStr}",
+        ]);
+
         if ($device) {
             $device->update(['last_sync_at' => Carbon::now()]);
         }
@@ -317,10 +370,13 @@ class AttendanceDeviceService
             'designation' => $teacher->designation,
             'department' => $teacher->department,
             'attendance_status' => 'Present',
+            'in_time' => $inTime,
+            'out_time' => $outTime,
+            'punch_count_today' => $todayPunches->count(),
             'punched_at' => $punchedAt->toDateTimeString(),
             'device' => $deviceName,
             'photo_url' => $teacher->profile_picture_url,
-            'message' => "Welcome {$name}! Staff punch recorded at {$timeStr}.",
+            'message' => "Welcome {$name}! Recorded punch #{$todayPunches->count()} (In: {$inTime}" . ($outTime ? ", Out: {$outTime}" : '') . ").",
             'log_id' => $log->id,
         ];
     }
@@ -340,7 +396,9 @@ class AttendanceDeviceService
     ): array {
         $deviceName = $device ? $device->name : 'External Device';
         $timeStr = $punchedAt->format('h:i:s A');
+        $date = $punchedAt->toDateString();
 
+        // 1. Keep ALL punch records in database
         $log = AttendanceDeviceLog::create([
             'school_id' => $schoolId,
             'attendance_device_id' => $device?->id,
@@ -358,6 +416,26 @@ class AttendanceDeviceService
             'payload_json' => $rawData,
         ]);
 
+        // 2. Query ALL punches today for this user to resolve first as In-Time and last as Out-Time
+        $todayPunches = AttendanceDeviceLog::where('school_id', $schoolId)
+            ->where('user_id', $user->id)
+            ->whereDate('punched_at', $date)
+            ->where('status', 'success')
+            ->orderBy('punched_at', 'asc')
+            ->get();
+
+        $firstPunch = $todayPunches->first();
+        $inTime = Carbon::parse($firstPunch->punched_at)->format('h:i A');
+        $outTime = ($todayPunches->count() > 1)
+            ? Carbon::parse($todayPunches->last()->punched_at)->format('h:i A')
+            : null;
+
+        $resolvedPunchType = ($todayPunches->count() === 1) ? 'check_in' : 'check_out';
+        $log->update([
+            'punch_type' => $resolvedPunchType,
+            'response_message' => "User punch #{$todayPunches->count()} for {$user->name} ({$user->role}) at {$timeStr}",
+        ]);
+
         if ($device) {
             $device->update(['last_sync_at' => Carbon::now()]);
         }
@@ -369,10 +447,13 @@ class AttendanceDeviceService
             'name' => $user->name,
             'role' => $user->role,
             'attendance_status' => 'Present',
+            'in_time' => $inTime,
+            'out_time' => $outTime,
+            'punch_count_today' => $todayPunches->count(),
             'punched_at' => $punchedAt->toDateTimeString(),
             'device' => $deviceName,
             'photo_url' => $user->profile_picture_url,
-            'message' => "Welcome {$user->name}! Punch recorded at {$timeStr}.",
+            'message' => "Welcome {$user->name}! Recorded punch #{$todayPunches->count()} (In: {$inTime}" . ($outTime ? ", Out: {$outTime}" : '') . ").",
             'log_id' => $log->id,
         ];
     }

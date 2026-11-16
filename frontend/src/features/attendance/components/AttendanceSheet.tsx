@@ -202,7 +202,8 @@ export const AttendanceSheet: React.FC = () => {
                 <tr>
                   <th className="py-3 px-4">Roll</th>
                   <th className="py-3 px-4">Student Name</th>
-                  <th className="py-3 px-4">Guardian Phone</th>
+                  <th className="py-3 px-4">In Time</th>
+                  <th className="py-3 px-4">Out Time</th>
                   <th className="py-3 px-4 text-center">Attendance Status</th>
                   <th className="py-3 px-4">Remarks</th>
                 </tr>
@@ -232,8 +233,30 @@ export const AttendanceSheet: React.FC = () => {
                         )}
                       </div>
                     </td>
-                    <td className="py-3 px-4 font-mono text-xs text-slate-600">
-                      {row.student.phone_number}
+                    <td className="py-3 px-4 whitespace-nowrap">
+                      {row.in_time_formatted ? (
+                        <span className="inline-flex items-center gap-1 font-mono text-xs font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60">
+                          <Clock className="w-3 h-3 text-emerald-600" />
+                          {row.in_time_formatted}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-slate-300 font-mono">—</span>
+                      )}
+                    </td>
+                    <td className="py-3 px-4 whitespace-nowrap">
+                      {row.out_time_formatted ? (
+                        <span className="inline-flex items-center gap-1 font-mono text-xs font-medium text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-200/60">
+                          <Clock className="w-3 h-3 text-indigo-600" />
+                          {row.out_time_formatted}
+                          {row.punch_count && row.punch_count > 2 && (
+                            <span className="text-[10px] text-indigo-400 ml-0.5" title={`Total ${row.punch_count} punches today`}>
+                              ({row.punch_count}x)
+                            </span>
+                          )}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-slate-300 font-mono">—</span>
+                      )}
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center justify-center gap-1.5">
