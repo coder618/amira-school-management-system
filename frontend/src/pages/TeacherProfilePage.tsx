@@ -16,6 +16,7 @@ import {
   Calendar,
   ShieldCheck,
   Layers,
+  BookOpen,
   Loader2,
   AlertCircle,
   Eye,
@@ -109,6 +110,7 @@ if (error || !teacher) {
 const avatarUrl = teacher.profile_picture_url || teacher.user?.profile_picture_url;
 const teacherName = teacher.user?.name || 'Faculty Member';
 const assignedSections = teacher.assignedSections || teacher.assigned_sections || [];
+const assignedSubjects = (teacher as any).subjects || [];
 
 return (
   <div className="max-w-4xl mx-auto space-y-6 pb-12">
@@ -326,6 +328,46 @@ return (
                     </div>
                     <div className="text-[11px] text-slate-500">
                       {sec.class_level?.name || (sec as any).classLevel?.name || 'Class Level'}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Assigned Subjects */}
+        <div className="mt-6 pt-6 border-t border-slate-100">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2 mb-3">
+            <BookOpen className="h-4 w-4 text-indigo-600" />
+            Assigned Subjects
+          </h3>
+
+          {assignedSubjects.length === 0 ? (
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 text-xs text-slate-500 text-center">
+              This faculty member has not been assigned to teach any subjects yet.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+              {assignedSubjects.map((sub: any) => (
+                <div
+                  key={sub.id}
+                  className="p-3.5 rounded-xl border border-slate-200 bg-white flex items-center gap-3 shadow-2xs"
+                >
+                  <div className="h-8 w-8 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 font-bold text-xs">
+                    <BookOpen className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <div className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
+                      <span>{sub.name}</span>
+                      {sub.code && (
+                        <span className="font-mono text-[10px] bg-slate-100 text-slate-600 px-1 py-0.5 rounded">
+                          {sub.code}
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-[11px] text-slate-500">
+                      {sub.class_level?.name || sub.classLevel?.name || 'Class Level'}
                     </div>
                   </div>
                 </div>

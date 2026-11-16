@@ -171,4 +171,81 @@ class SubjectCrudTest extends TestCase
 
         $response->assertStatus(403);
     }
+
+    public function test_can_create_subject_with_optional_teacher(): void
+    {
+        // 1. Create teacher user and teacher record
+        $teacherUser = User::create([
+            'school_id' => $this->schoolA->id,
+            'name' => 'Mr. Rafiqul Islam',
+            'email' => 'rafiq@dis.edu.bd',
+            'password' => bcrypt('password'),
+            'role' => \App\Modules\Core\Enums\Role::Teacher->value,
+        ]);
+
+        $teacher = \App\Modules\HR\Models\Teacher::create([
+            'school_id' => $this->schoolA->id,
+            'user_id' => $teacherUser->id,
+            'employee_id' => 'EMP-501',
+            'designation' => 'Assistant Teacher (Science)',
+        ]);
+
+        // Create subject without teacher (optional field omitted)
+        $resp1 = $this->actingAs($this->adminA)
+            ->withHeaders(['X-School-Id' => $this->schoolA->id])
+            ->postJson('/api/subjects', [
+                'class_level_id' => $this->classA->id,
+                'name' => 'Bangla 1st Paper',
+                'code' => 'BAN-101',
+            ]);
+
+        $resp1->assertStatus(201)
+            ->assertJsonPath('teacher_id', null);
+
+        // Create subject with teacher_id pointing to Teacher model
+        $resp2 = $this->actingAs($this->adminA)
+            ->withHeaders(['X-School-Id' => $this->schoolA->id])
+            ->postJson('/api/subjects', [
+                'class_level_id' => $this->classA->id,
+                'name' => 'Physics',
+                'code' => 'PHY-101',
+                'teacher_id' => $teacher->id,
+            ]);
+
+        $resp2->assertStatus(201)
+            ->assertJsonPath('teacher_id', $teacher->id)
+            ->assertJsonPath('teacher.user.name', 'Mr. Rafiqul Islam');
+
+        // Create subject with teacher_id pointing to User with Role::Teacher
+        $teacherUser2 = User::create([
+            'school_id' => $this->schoolA->id,
+            'name' => 'Ms. Sabina Yasmin',
+            'email' => 'sabina@dis.edu.bd',
+            'password' => bcrypt('password'),
+            'role' => \App\Modules\Core\Enums\Role::Teacher->value,
+        ]);
+
+        $resp3 = $this->actingAs($this->adminA)
+            ->withHeaders(['X-School-Id' => $this->schoolA->id])
+            ->postJson('/api/subjects', [
+                'class_level_id' => $this->classA->id,
+                'name' => 'Chemistry',
+                'code' => 'CHE-101',
+                'teacher_id' => $teacherUser2->id,
+            ]);
+
+        $resp3->assertStatus(201)
+            ->assertJsonPath('teacher.user.name', 'Ms. Sabina Yasmin');
+
+        // Can update subject to unassign teacher (set to null)
+        $subjectId = $resp2->json('id');
+        $respUpdate = $this->actingAs($this->adminA)
+            ->withHeaders(['X-School-Id' => $this->schoolA->id])
+            ->putJson("/api/subjects/{$subjectId}", [
+                'teacher_id' => null,
+            ]);
+
+        $respUpdate->assertOk()
+            ->assertJsonPath('teacher_id', null);
+    }
 }

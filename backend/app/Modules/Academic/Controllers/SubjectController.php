@@ -5,8 +5,11 @@ namespace App\Modules\Academic\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Academic\Models\ClassLevel;
 use App\Modules\Academic\Models\Subject;
+use App\Modules\Core\Enums\Role;
 use App\Modules\Core\Models\AcademicYear;
 use App\Modules\Core\Models\School;
+use App\Modules\Core\Models\User;
+use App\Modules\HR\Models\Teacher;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -18,12 +21,16 @@ class SubjectController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Subject::with('classLevel')
+        $query = Subject::with(['classLevel', 'teacher.user'])
             ->withCount('results')
             ->forTenant();
 
         if ($request->filled('class_level_id')) {
             $query->where('class_level_id', $request->query('class_level_id'));
+        }
+
+        if ($request->filled('teacher_id')) {
+            $query->where('teacher_id', $request->query('teacher_id'));
         }
 
         if ($request->filled('search')) {
@@ -89,6 +96,7 @@ class SubjectController extends Controller
                 }),
             ],
             'code' => 'nullable|string|max:20',
+            'teacher_id' => 'nullable',
             'full_mark' => 'nullable|numeric|min:1|max:500',
             'pass_mark' => 'nullable|numeric|min:0|max:500',
             'is_optional' => 'nullable|boolean',
@@ -101,13 +109,14 @@ class SubjectController extends Controller
         if ($academicYearId) {
             $validated['academic_year_id'] = $academicYearId;
         }
+        $validated['teacher_id'] = $this->resolveTeacherId($request->input('teacher_id'), $schoolId);
         $validated['full_mark'] = $validated['full_mark'] ?? 100.00;
         $validated['pass_mark'] = $validated['pass_mark'] ?? 33.00;
         $validated['is_optional'] = (bool) ($validated['is_optional'] ?? false);
         $validated['can_be_4th_subject'] = (bool) ($validated['can_be_4th_subject'] ?? false);
 
         $subject = Subject::create($validated);
-        $subject->load('classLevel');
+        $subject->load(['classLevel', 'teacher.user']);
         $subject->loadCount('results');
 
         return response()->json($subject, 201);
@@ -119,7 +128,7 @@ class SubjectController extends Controller
     public function show(Subject $subject): JsonResponse
     {
         $this->authorizeTenant($subject);
-        $subject->load('classLevel');
+        $subject->load(['classLevel', 'teacher.user']);
         $subject->loadCount('results');
 
         return response()->json($subject);
@@ -163,6 +172,7 @@ class SubjectController extends Controller
                     })
                     ->ignore($subject->id),
             ],
+            'teacher_id' => 'nullable',
             'code' => 'nullable|string|max:20',
             'full_mark' => 'sometimes|numeric|min:1|max:500',
             'pass_mark' => 'sometimes|numeric|min:0|max:500',
@@ -172,8 +182,12 @@ class SubjectController extends Controller
             'name.unique' => 'A subject with this name already exists for the selected class.',
         ]);
 
+        if ($request->has('teacher_id')) {
+            $validated['teacher_id'] = $this->resolveTeacherId($request->input('teacher_id'), $schoolId);
+        }
+
         $subject->update($validated);
-        $subject->load('classLevel');
+        $subject->load(['classLevel', 'teacher.user']);
         $subject->loadCount('results');
 
         return response()->json($subject);
@@ -198,6 +212,56 @@ class SubjectController extends Controller
         return response()->json([
             'message' => "Subject '{$name}' deleted successfully.",
         ]);
+    }
+
+    /**
+     * Resolve optional teacher id from Teacher ID or User (with Teacher role) ID.
+     */
+    protected function resolveTeacherId(mixed $rawTeacherId, ?int $schoolId): ?int
+    {
+        if (empty($rawTeacherId) || $rawTeacherId === 'null' || $rawTeacherId === 'none') {
+            return null;
+        }
+
+        $id = (int) $rawTeacherId;
+        if ($id <= 0) {
+            return null;
+        }
+
+        // 1. Direct match on teachers table in this tenant school
+        $teacher = Teacher::where('id', $id)
+            ->when($schoolId, fn ($q) => $q->where('school_id', $schoolId))
+            ->first();
+
+        // 2. Match on user_id in teachers table
+        if (! $teacher) {
+            $teacher = Teacher::where('user_id', $id)
+                ->when($schoolId, fn ($q) => $q->where('school_id', $schoolId))
+                ->first();
+        }
+
+        // 3. Match on User with Teacher role in this tenant school
+        if (! $teacher) {
+            $userTeacher = User::where('id', $id)
+                ->when($schoolId, fn ($q) => $q->where('school_id', $schoolId))
+                ->where('role', Role::Teacher->value)
+                ->first();
+
+            if ($userTeacher) {
+                $teacher = Teacher::firstOrCreate(
+                    [
+                        'school_id' => $userTeacher->school_id,
+                        'user_id' => $userTeacher->id,
+                    ],
+                    [
+                        'employee_id' => 'EMP-' . str_pad((string) $userTeacher->id, 3, '0', STR_PAD_LEFT),
+                        'designation' => 'Teacher',
+                    ]
+                );
+            }
+        }
+
+        return $teacher?->id;
     }
 
     /**

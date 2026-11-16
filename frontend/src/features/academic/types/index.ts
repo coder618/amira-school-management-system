@@ -98,6 +98,7 @@ export interface StudentFilterParams {
 
 export interface Subject extends TenantEntity {
   class_level_id: number;
+  teacher_id?: number | null;
   name: string;
   code?: string | null;
   full_mark: number;
@@ -105,11 +106,26 @@ export interface Subject extends TenantEntity {
   is_optional: boolean;
   can_be_4th_subject: boolean;
   class_level?: ClassLevel;
+  teacher?: {
+    id: number;
+    employee_id?: string;
+    designation?: string;
+    department?: string;
+    user_id?: number;
+    user?: {
+      id: number;
+      name: string;
+      email?: string;
+      role?: string;
+      profile_picture_url?: string | null;
+    };
+  } | null;
   results_count?: number;
 }
 
 export interface SubjectPayload {
   class_level_id: number;
+  teacher_id?: number | null;
   name: string;
   code?: string;
   full_mark?: number;

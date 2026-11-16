@@ -3,6 +3,7 @@
 namespace App\Modules\HR\Models;
 
 use App\Modules\Academic\Models\Section;
+use App\Modules\Academic\Models\Subject;
 use App\Modules\Core\Models\User;
 use App\Modules\Core\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -53,6 +54,11 @@ class Teacher extends Model
     public function assignedSections(): HasMany
     {
         return $this->hasMany(Section::class, 'class_teacher_id');
+    }
+
+    public function subjects(): HasMany
+    {
+        return $this->hasMany(Subject::class, 'teacher_id');
     }
 }
 

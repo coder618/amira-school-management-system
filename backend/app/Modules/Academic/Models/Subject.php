@@ -19,6 +19,7 @@ class Subject extends Model
         'school_id',
         'academic_year_id',
         'class_level_id',
+        'teacher_id',
         'name',
         'code',
         'full_mark',
@@ -40,6 +41,11 @@ class Subject extends Model
     public function classLevel(): BelongsTo
     {
         return $this->belongsTo(ClassLevel::class);
+    }
+
+    public function teacher(): BelongsTo
+    {
+        return $this->belongsTo(\App\Modules\HR\Models\Teacher::class, 'teacher_id');
     }
 
     public function results(): HasMany

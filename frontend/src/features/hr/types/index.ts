@@ -25,6 +25,15 @@ export interface Teacher extends TenantEntity {
     class_level?: { id: number; name: string };
     classLevel?: { id: number; name: string };
   }>;
+  subjects?: Array<{
+    id: number;
+    name: string;
+    code?: string | null;
+    full_mark?: number;
+    pass_mark?: number;
+    class_level?: { id: number; name: string };
+    classLevel?: { id: number; name: string };
+  }>;
 }
 
 export interface TeacherPayload {

@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { academicApi } from '../../academic/api';
 import { ClassLevel, Subject, SubjectPayload } from '../../academic/types';
+import { hrApi } from '../../hr/api';
+import { Teacher } from '../../hr/types';
 import {
   BookOpen,
   Layers,
@@ -27,6 +29,7 @@ export const ClassSubjectsView: React.FC = () => {
 
   const [classes, setClasses] = useState<ClassLevel[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -49,6 +52,7 @@ export const ClassSubjectsView: React.FC = () => {
   // Form states
   const [formData, setFormData] = useState<SubjectPayload>({
     class_level_id: 0,
+    teacher_id: null,
     name: '',
     code: '',
     full_mark: 100,
@@ -60,22 +64,25 @@ export const ClassSubjectsView: React.FC = () => {
   // Quick inline creator state
   const [showQuickCreator, setShowQuickCreator] = useState(false);
   const [quickClassId, setQuickClassId] = useState<number | ''>('');
+  const [quickTeacherId, setQuickTeacherId] = useState<number | ''>('');
   const [quickName, setQuickName] = useState('');
   const [quickCode, setQuickCode] = useState('');
   const [quickSubmitting, setQuickSubmitting] = useState(false);
   const [quickError, setQuickError] = useState<string | null>(null);
   const [quickSuccess, setQuickSuccess] = useState<string | null>(null);
 
-  // Load classes & subjects
+  // Load classes, subjects & teachers
   const fetchData = useCallback(async () => {
     try {
       setRefreshing(true);
-      const [classesData, subjectsData] = await Promise.all([
+      const [classesData, subjectsData, teachersData] = await Promise.all([
         academicApi.getClassLevels(),
         academicApi.getSubjects(),
+        hrApi.getTeachers().catch(() => []),
       ]);
       setClasses(classesData);
       setSubjects(subjectsData);
+      setTeachers(teachersData);
       if (classesData.length > 0 && !quickClassId) {
         setQuickClassId(classesData[0].id);
       }
@@ -135,6 +142,7 @@ export const ClassSubjectsView: React.FC = () => {
   const openCreateModal = () => {
     setFormData({
       class_level_id: typeof selectedClassId === 'number' ? selectedClassId : classes[0]?.id || 0,
+      teacher_id: null,
       name: '',
       code: '',
       full_mark: 100,
@@ -150,6 +158,7 @@ export const ClassSubjectsView: React.FC = () => {
     setSelectedSubjectForEdit(subject);
     setFormData({
       class_level_id: subject.class_level_id,
+      teacher_id: subject.teacher_id || null,
       name: subject.name,
       code: subject.code || '',
       full_mark: Number(subject.full_mark) || 100,
@@ -175,6 +184,7 @@ export const ClassSubjectsView: React.FC = () => {
       setIsSubmitting(true);
       await academicApi.createSubject({
         class_level_id: formData.class_level_id,
+        teacher_id: formData.teacher_id ? Number(formData.teacher_id) : null,
         name: formData.name.trim(),
         code: formData.code?.trim() || undefined,
         full_mark: Number(formData.full_mark) || 100,
@@ -216,6 +226,7 @@ export const ClassSubjectsView: React.FC = () => {
     try {
       await academicApi.createSubject({
         class_level_id: Number(quickClassId),
+        teacher_id: quickTeacherId ? Number(quickTeacherId) : undefined,
         name: quickName.trim(),
         code: quickCode.trim() || undefined,
         full_mark: 100,
@@ -226,6 +237,7 @@ export const ClassSubjectsView: React.FC = () => {
       setQuickSuccess(`Subject "${quickName.trim()}" added successfully!`);
       setQuickName('');
       setQuickCode('');
+      setQuickTeacherId('');
       setTimeout(() => setQuickSuccess(null), 3000);
       await fetchData();
     } catch (err: any) {
@@ -249,6 +261,7 @@ export const ClassSubjectsView: React.FC = () => {
       setIsSubmitting(true);
       await academicApi.updateSubject(selectedSubjectForEdit.id, {
         class_level_id: formData.class_level_id,
+        teacher_id: formData.teacher_id ? Number(formData.teacher_id) : null,
         name: formData.name.trim(),
         code: formData.code?.trim() || undefined,
         full_mark: Number(formData.full_mark) || 100,
@@ -505,7 +518,7 @@ export const ClassSubjectsView: React.FC = () => {
           )}
 
           <form onSubmit={handleQuickCreate} className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
-            <div className="sm:col-span-4">
+            <div className="sm:col-span-3">
               <label className="block text-[11px] font-semibold text-slate-700 mb-1">
                 Class Level <span className="text-rose-500">*</span>
               </label>
@@ -523,7 +536,7 @@ export const ClassSubjectsView: React.FC = () => {
               </select>
             </div>
 
-            <div className="sm:col-span-5">
+            <div className="sm:col-span-3">
               <label className="block text-[11px] font-semibold text-slate-700 mb-1">
                 Subject Name <span className="text-rose-500">*</span>
               </label>
@@ -548,6 +561,24 @@ export const ClassSubjectsView: React.FC = () => {
                 onChange={(e) => setQuickCode(e.target.value)}
                 className="w-full rounded-lg border border-slate-300 bg-white py-2 px-3 text-xs text-slate-900 placeholder-slate-400 focus:border-indigo-600 focus:outline-hidden"
               />
+            </div>
+
+            <div className="sm:col-span-3">
+              <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                Teacher (Optional)
+              </label>
+              <select
+                value={quickTeacherId}
+                onChange={(e) => setQuickTeacherId(e.target.value ? parseInt(e.target.value) : '')}
+                className="w-full rounded-lg border border-slate-300 bg-white py-2 px-3 text-xs text-slate-900 focus:border-indigo-600 focus:outline-hidden"
+              >
+                <option value="">-- No Teacher --</option>
+                {teachers.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.user?.name || `Teacher #${t.id}`}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className="sm:col-span-1">
@@ -596,6 +627,7 @@ export const ClassSubjectsView: React.FC = () => {
                 <tr>
                   <th className="py-3 px-4">Subject Name</th>
                   <th className="py-3 px-3">Class Level</th>
+                  <th className="py-3 px-3">Teacher</th>
                   <th className="py-3 px-3">Subject Code</th>
                   <th className="py-3 px-3 text-center">Full / Pass Mark</th>
                   <th className="py-3 px-3 text-center">Classification</th>
@@ -622,6 +654,27 @@ export const ClassSubjectsView: React.FC = () => {
                         <Layers className="h-3 w-3 text-indigo-600" />
                         <span>{subject.class_level?.name || `Class #${subject.class_level_id}`}</span>
                       </span>
+                    </td>
+
+                    {/* Assigned Teacher */}
+                    <td className="py-3.5 px-3">
+                      {subject.teacher ? (
+                        <div className="flex items-center gap-2">
+                          <div className="h-7 w-7 rounded-full bg-indigo-50 border border-indigo-200 flex items-center justify-center text-xs font-bold text-indigo-700 shrink-0">
+                            {subject.teacher.user?.name?.charAt(0) || 'T'}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="font-semibold text-slate-900 text-xs truncate">
+                              {subject.teacher.user?.name || `Teacher #${subject.teacher.id}`}
+                            </div>
+                            <div className="text-[10px] text-slate-400 truncate">
+                              {subject.teacher.designation || subject.teacher.employee_id || 'Teacher'}
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-slate-400 italic">Unassigned</span>
+                      )}
                     </td>
 
                     {/* Subject Code */}
@@ -787,6 +840,36 @@ export const ClassSubjectsView: React.FC = () => {
                 />
               </div>
 
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">
+                  Subject Teacher <span className="text-slate-400 font-normal lowercase">(optional)</span>
+                </label>
+                <select
+                  value={formData.teacher_id || ''}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      teacher_id: e.target.value ? parseInt(e.target.value) : null,
+                    })
+                  }
+                  className="w-full rounded-lg border border-slate-300 py-2 px-3 text-sm focus:border-indigo-600 focus:outline-hidden bg-white"
+                >
+                  <option value="">-- No Teacher Assigned (Optional) --</option>
+                  {teachers.map((t) => {
+                    const teacherName = t.user?.name || `Teacher #${t.id}`;
+                    const details = [t.designation, t.employee_id].filter(Boolean).join(' • ');
+                    return (
+                      <option key={t.id} value={t.id}>
+                        {teacherName} {details ? `(${details})` : ''}
+                      </option>
+                    );
+                  })}
+                </select>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Optionally pick a user with the Teacher role for this specific subject.
+                </p>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">
@@ -936,6 +1019,36 @@ export const ClassSubjectsView: React.FC = () => {
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="w-full rounded-lg border border-slate-300 py-2 px-3 text-sm focus:border-indigo-600 focus:outline-hidden"
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">
+                  Subject Teacher <span className="text-slate-400 font-normal lowercase">(optional)</span>
+                </label>
+                <select
+                  value={formData.teacher_id || ''}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      teacher_id: e.target.value ? parseInt(e.target.value) : null,
+                    })
+                  }
+                  className="w-full rounded-lg border border-slate-300 py-2 px-3 text-sm focus:border-indigo-600 focus:outline-hidden bg-white"
+                >
+                  <option value="">-- No Teacher Assigned (Optional) --</option>
+                  {teachers.map((t) => {
+                    const teacherName = t.user?.name || `Teacher #${t.id}`;
+                    const details = [t.designation, t.employee_id].filter(Boolean).join(' • ');
+                    return (
+                      <option key={t.id} value={t.id}>
+                        {teacherName} {details ? `(${details})` : ''}
+                      </option>
+                    );
+                  })}
+                </select>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Optionally pick a user with the Teacher role for this specific subject.
+                </p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

@@ -133,7 +133,7 @@ class TeacherController extends Controller
 
     public function show(Teacher $teacher): JsonResponse
     {
-        $teacher->load(['user', 'assignedSections.classLevel']);
+        $teacher->load(['user', 'assignedSections.classLevel', 'subjects.classLevel']);
 
         if (request()->boolean('full_summary')) {
             return $this->fullSummary($teacher);
@@ -154,7 +154,7 @@ class TeacherController extends Controller
             return response()->json(['message' => 'Unauthorized access to faculty record.'], 403);
         }
 
-        $teacher->load(['user', 'assignedSections.classLevel']);
+        $teacher->load(['user', 'assignedSections.classLevel', 'subjects.classLevel']);
 
         // 1. Last 10 days attendance
         $today = Carbon::today();
