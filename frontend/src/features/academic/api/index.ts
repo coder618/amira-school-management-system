@@ -8,6 +8,9 @@ import {
   Shift,
   Subject,
   SubjectPayload,
+  StudentFullSummaryResponse,
+  StudentAttendanceHistoryResponse,
+  TeacherNoteItem,
 } from '../types';
 
 export const academicApi = {
@@ -102,6 +105,55 @@ export const academicApi = {
 
   deleteSubject: async (id: number): Promise<{ message: string }> => {
     const res = await apiClient.delete<{ message: string }>(`/subjects/${id}`);
+    return res.data;
+  },
+
+  // Student Full Summary & Detail Modules
+  getStudentFullSummary: async (studentId: number): Promise<StudentFullSummaryResponse> => {
+    const res = await apiClient.get<StudentFullSummaryResponse>(`/students/${studentId}/full-summary`);
+    return res.data;
+  },
+
+  getStudentAttendanceHistory: async (
+    studentId: number,
+    days = 10
+  ): Promise<StudentAttendanceHistoryResponse> => {
+    const res = await apiClient.get<StudentAttendanceHistoryResponse>(
+      `/students/${studentId}/attendance-history`,
+      { params: { days } }
+    );
+    return res.data;
+  },
+
+  getStudentTeacherNotes: async (
+    studentId: number,
+    page = 1,
+    perPage = 10
+  ): Promise<{ data: TeacherNoteItem[]; current_page: number; total: number; last_page: number }> => {
+    const res = await apiClient.get<{
+      data: TeacherNoteItem[];
+      current_page: number;
+      total: number;
+      last_page: number;
+    }>(`/students/${studentId}/teacher-notes`, { params: { page, per_page: perPage } });
+    return res.data;
+  },
+
+  createTeacherNote: async (
+    studentId: number,
+    payload: { title: string; note: string; category?: string; date?: string }
+  ): Promise<{ message: string; data: TeacherNoteItem }> => {
+    const res = await apiClient.post<{ message: string; data: TeacherNoteItem }>(
+      `/students/${studentId}/teacher-notes`,
+      payload
+    );
+    return res.data;
+  },
+
+  deleteTeacherNote: async (studentId: number, noteId: number): Promise<{ message: string }> => {
+    const res = await apiClient.delete<{ message: string }>(
+      `/students/${studentId}/teacher-notes/${noteId}`
+    );
     return res.data;
   },
 };

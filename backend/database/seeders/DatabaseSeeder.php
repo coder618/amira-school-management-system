@@ -607,5 +607,111 @@ class DatabaseSeeder extends Seeder
                 );
             }
         }
+
+        // 13. Attendance Holiday Calendar Seeding
+        $holidays = [
+            [
+                'title' => 'International Mother Language Day (Shaheed Day)',
+                'date' => '2026-02-21',
+                'type' => 'National',
+                'description' => 'National commemoration of the Bengali Language Movement martyrs',
+            ],
+            [
+                'title' => 'Independence & National Day',
+                'date' => '2026-03-26',
+                'type' => 'National',
+                'description' => 'Celebration of Bangladesh Declaration of Independence',
+            ],
+            [
+                'title' => 'Bengali New Year (Pahela Baishakh)',
+                'date' => '2026-04-14',
+                'type' => 'Cultural',
+                'description' => 'First day of the Bengali calendar and traditional festival',
+            ],
+            [
+                'title' => 'Eid-ul-Fitr Vacation',
+                'date' => '2026-03-19',
+                'end_date' => '2026-03-24',
+                'type' => 'Religious',
+                'description' => 'Annual Islamic holiday celebrating the conclusion of Ramadan',
+            ],
+            [
+                'title' => 'National Mourning Day',
+                'date' => '2026-08-15',
+                'type' => 'National',
+                'description' => 'Commemoration of the Father of the Nation',
+            ],
+            [
+                'title' => 'Durga Puja Vacation',
+                'date' => '2026-10-18',
+                'end_date' => '2026-10-21',
+                'type' => 'Religious',
+                'description' => 'Annual Hindu religious festival',
+            ],
+            [
+                'title' => 'Victory Day (Bijoy Dibosh)',
+                'date' => '2026-12-16',
+                'type' => 'National',
+                'description' => 'Commemoration of the victory of Allied forces in Liberation War',
+            ],
+            [
+                'title' => 'Winter & Christmas Break',
+                'date' => '2026-12-25',
+                'end_date' => '2026-12-31',
+                'type' => 'Academic',
+                'description' => 'Annual winter institutional recess and Christmas celebration',
+            ],
+        ];
+
+        foreach ($holidays as $item) {
+            \App\Modules\Attendance\Models\Holiday::firstOrCreate(
+                [
+                    'school_id' => $school->id,
+                    'title' => $item['title'],
+                    'date' => $item['date'],
+                ],
+                [
+                    'academic_year_id' => $year->id,
+                    'end_date' => $item['end_date'] ?? null,
+                    'type' => $item['type'],
+                    'description' => $item['description'],
+                    'created_by' => $adminUser->id ?? null,
+                ]
+            );
+        }
+
+        // 14. Student Teacher Notes Seeding
+        $allStudents = Student::take(10)->get();
+        foreach ($allStudents as $st) {
+            \App\Modules\Academic\Models\TeacherNote::firstOrCreate(
+                [
+                    'school_id' => $school->id,
+                    'student_id' => $st->id,
+                    'title' => 'Mid-Term Academic Progress',
+                ],
+                [
+                    'author_id' => $adminUser->id ?? null,
+                    'author_name' => 'Dr. Anwar Hossain (Senior Mathematics Teacher)',
+                    'category' => 'Academic',
+                    'note' => 'Demonstrates strong analytical skills and consistent homework submission. Encouraged to participate in inter-school math olympiad.',
+                    'date' => now()->subDays(4)->toDateString(),
+                ]
+            );
+
+            \App\Modules\Academic\Models\TeacherNote::firstOrCreate(
+                [
+                    'school_id' => $school->id,
+                    'student_id' => $st->id,
+                    'title' => 'Classroom Conduct & Discipline',
+                ],
+                [
+                    'author_id' => $adminUser->id ?? null,
+                    'author_name' => 'Ms. Farhana Yasmin (Class Teacher)',
+                    'category' => 'Behavioral',
+                    'note' => 'Polite, active, and helpful towards classmates during group assignments. Punctual in attending morning assembly.',
+                    'date' => now()->subDays(12)->toDateString(),
+                ]
+            );
+        }
     }
 }

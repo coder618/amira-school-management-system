@@ -141,3 +141,40 @@ export interface AssignCardPayload {
   card_rfid?: string;
   biometric_id?: string;
 }
+
+export interface Holiday extends TenantEntity {
+  title: string;
+  date: string;
+  end_date?: string | null;
+  type: string;
+  description?: string | null;
+  is_half_day?: boolean;
+  created_by?: number | null;
+  creator?: {
+    id: number;
+    name: string;
+    email: string;
+  } | null;
+}
+
+export interface HolidayPayload {
+  title: string;
+  date: string;
+  end_date?: string | null;
+  type?: string;
+  description?: string | null;
+  is_half_day?: boolean;
+  academic_year_id?: number | null;
+}
+
+export interface HolidayStats {
+  total_in_query: number;
+  total_year: number;
+  upcoming: Holiday[];
+}
+
+export interface HolidayListResponse {
+  data: Holiday[];
+  stats: HolidayStats;
+}
+

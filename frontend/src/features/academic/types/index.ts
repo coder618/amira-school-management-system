@@ -118,4 +118,166 @@ export interface SubjectPayload {
   can_be_4th_subject?: boolean;
 }
 
+export interface StudentAttendanceHistoryItem {
+  id: number;
+  date: string;
+  day: string;
+  status: 'Present' | 'Absent' | 'Late' | 'Holiday';
+  remarks: string;
+  is_holiday: boolean;
+  holiday?: {
+    id: number;
+    title: string;
+    type: string;
+  } | null;
+  attendance_id?: number | null;
+}
+
+export interface StudentAttendanceHistoryResponse {
+  student_id: number;
+  days: number;
+  data: StudentAttendanceHistoryItem[];
+  summary: {
+    total: number;
+    present: number;
+    absent: number;
+    late: number;
+    holiday: number;
+  };
+}
+
+export interface TeacherNoteItem {
+  id: number;
+  school_id: number;
+  student_id: number;
+  teacher_id?: number | null;
+  author_id?: number | null;
+  author_name?: string | null;
+  title: string;
+  category: string;
+  note: string;
+  date: string;
+  created_at?: string;
+  author?: {
+    id: number;
+    name: string;
+    email: string;
+  } | null;
+}
+
+export interface StudentInvoiceItem {
+  id: number;
+  invoice_no: string;
+  title: string;
+  amount: number;
+  due_date: string;
+  status: 'pending' | 'paid' | 'partial' | 'cancelled';
+  paid_amount?: number;
+  fund_collection_name?: {
+    id: number;
+    name: string;
+  } | null;
+  created_at?: string;
+}
+
+export interface StudentPaymentItem {
+  id: number;
+  receipt_no: string;
+  amount: number;
+  payment_method: string;
+  payment_date?: string;
+  transaction_id?: string | null;
+  status: string;
+  fund_collection_name?: {
+    id: number;
+    name: string;
+  } | null;
+  created_at?: string;
+}
+
+export interface StudentLibraryRentItem {
+  id: number;
+  book_id: number;
+  status: 'issued' | 'returned' | 'overdue' | 'lost';
+  issue_date: string;
+  due_date: string;
+  return_date?: string | null;
+  fine_amount?: number;
+  fine_status?: string;
+  notes?: string | null;
+  book?: {
+    id: number;
+    title: string;
+    isbn?: string | null;
+    author?: string | null;
+    call_number?: string | null;
+  } | null;
+}
+
+export interface StudentExamResultItem {
+  id: number;
+  exam_id: number;
+  subject_id: number;
+  total_mark: number;
+  grade?: string | null;
+  gpa?: number | null;
+  note?: string | null;
+  exam?: {
+    id: number;
+    name: string;
+    exam_type?: string;
+    term?: string;
+  } | null;
+  subject?: {
+    id: number;
+    name: string;
+    code?: string;
+    full_mark?: number;
+  } | null;
+}
+
+export interface StudentDocumentItem {
+  id: number;
+  title: string;
+  document_type: string;
+  file_name?: string;
+  file_size?: number;
+  formatted_file_size?: string;
+  created_at: string;
+  file_url?: string;
+}
+
+export interface StudentFullSummaryResponse {
+  student: Student;
+  attendance: {
+    total: number;
+    data: StudentAttendanceHistoryItem[];
+  };
+  invoices: {
+    total: number;
+    data: StudentInvoiceItem[];
+  };
+  payments: {
+    total: number;
+    data: StudentPaymentItem[];
+  };
+  teacher_notes: {
+    total: number;
+    data: TeacherNoteItem[];
+  };
+  library_rents: {
+    total: number;
+    data: StudentLibraryRentItem[];
+  };
+  exam_results: {
+    total: number;
+    data: StudentExamResultItem[];
+  };
+  documents: {
+    total: number;
+    data: StudentDocumentItem[];
+  };
+}
+
+
 

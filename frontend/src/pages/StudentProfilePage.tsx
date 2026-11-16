@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { academicApi } from '../features/academic/api';
-import { documentsApi } from '../services/api';
-import { Student } from '../features/academic/types';
+import { Student, StudentFullSummaryResponse } from '../features/academic/types';
 import { DocumentItem } from '../types';
 import { UploadDocumentModal, DocumentPreviewModal } from '../features/documents';
+import { StudentDetailTables } from '../features/academic/components/StudentDetailTables';
 import {
   ArrowLeft,
   Edit,
@@ -21,14 +21,8 @@ import {
   AlertCircle,
   ExternalLink,
   ShieldCheck,
-  Clock,
   Printer,
-  Sparkles,
-  FolderArchive,
-  FileText,
-  Upload,
-  Download,
-  Plus,
+  TableProperties,
 } from 'lucide-react';
 
 export const StudentProfilePage: React.FC = () => {
@@ -36,61 +30,54 @@ export const StudentProfilePage: React.FC = () => {
   const navigate = useNavigate();
 
   const [student, setStudent] = useState<Student | null>(null);
+  const [summary, setSummary] = useState<StudentFullSummaryResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeView, setActiveView] = useState<'records' | 'bio'>('records');
+
   const [selectedImage, setSelectedImage] = useState<{ url: string; title: string } | null>(null);
-  const [documents, setDocuments] = useState<DocumentItem[]>([]);
-  const [documentsLoading, setDocumentsLoading] = useState(false);
   const [isUploadDocOpen, setIsUploadDocOpen] = useState(false);
   const [previewDoc, setPreviewDoc] = useState<DocumentItem | null>(null);
 
-  const fetchStudentDocuments = async (studentId: number) => {
+  const fetchStudentData = useCallback(async () => {
+    if (!id) return;
     try {
-      setDocumentsLoading(true);
-      const res = await documentsApi.getAll({ student_id: studentId });
-      setDocuments(res.data || []);
-    } catch {
-      // non-fatal
+      setLoading(true);
+      setError(null);
+      const summaryData = await academicApi.getStudentFullSummary(Number(id));
+      setSummary(summaryData);
+      setStudent(summaryData.student);
+    } catch (err: unknown) {
+      if (err && typeof err === 'object' && 'response' in err) {
+        const ax = err as { response?: { status?: number; data?: { message?: string } } };
+        if (ax.response?.status === 404) {
+          setError('Student record not found in this school tenant.');
+        } else {
+          setError(ax.response?.data?.message || 'Failed to load student profile.');
+        }
+      } else {
+        setError('Failed to load student profile.');
+      }
     } finally {
-      setDocumentsLoading(false);
+      setLoading(false);
     }
-  };
+  }, [id]);
 
   useEffect(() => {
-    const fetchStudent = async () => {
-      if (!id) return;
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await academicApi.getStudentById(Number(id));
-        setStudent(data);
-        fetchStudentDocuments(Number(id));
-      } catch (err: unknown) {
-        if (err && typeof err === 'object' && 'response' in err) {
-          const ax = err as { response?: { status?: number; data?: { message?: string } } };
-          if (ax.response?.status === 404) {
-            setError('Student record not found in this school tenant.');
-          } else {
-            setError(ax.response?.data?.message || 'Failed to load student profile.');
-          }
-        } else {
-          setError('Failed to load student profile.');
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchStudent();
-  }, [id]);
+    fetchStudentData();
+  }, [fetchStudentData]);
 
   const handleDelete = async () => {
     if (!student) return;
-    if (window.confirm(`Are you sure you want to remove ${student.first_name} ${student.last_name || ''}? This will also delete their login account.`)) {
+    if (
+      window.confirm(
+        `Are you sure you want to remove ${student.first_name} ${student.last_name || ''}? This will also delete their login account.`
+      )
+    ) {
       try {
         await academicApi.deleteStudent(student.id);
         navigate('/students');
-      } catch (err) {
+      } catch {
         alert('Failed to delete student.');
       }
     }
@@ -100,22 +87,39 @@ export const StudentProfilePage: React.FC = () => {
     window.print();
   };
 
+  const handleAddTeacherNote = async (payload: {
+    title: string;
+    category: string;
+    note: string;
+    date: string;
+  }) => {
+    if (!student) return;
+    await academicApi.createTeacherNote(student.id, payload);
+    fetchStudentData();
+  };
+
+  const handleDeleteTeacherNote = async (noteId: number) => {
+    if (!student) return;
+    await academicApi.deleteTeacherNote(student.id, noteId);
+    fetchStudentData();
+  };
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] text-slate-500 gap-3">
         <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
-        <span className="text-sm font-medium">Loading student profile...</span>
+        <span className="text-sm font-medium">Loading comprehensive student records...</span>
       </div>
     );
   }
 
-  if (error || !student) {
+  if (error || !student || !summary) {
     return (
       <div className="max-w-3xl mx-auto py-8 px-4">
         <div className="rounded-2xl bg-rose-50 border border-rose-200 p-6 text-center space-y-3">
           <AlertCircle className="h-10 w-10 text-rose-500 mx-auto" />
           <h2 className="text-lg font-bold text-rose-900">Student Profile Error</h2>
-          <p className="text-sm text-rose-700">{error || 'Student not found.'}</p>
+          <p className="text-sm text-rose-700">{error || 'Student record could not be loaded.'}</p>
           <div className="pt-2">
             <Link
               to="/students"
@@ -134,7 +138,7 @@ export const StudentProfilePage: React.FC = () => {
   const initials = `${student.first_name.charAt(0)}${student.last_name ? student.last_name.charAt(0) : ''}`;
 
   return (
-    <div className="max-w-6xl mx-auto py-4 px-2 sm:px-4 space-y-6">
+    <div className="max-w-7xl mx-auto py-4 px-2 sm:px-4 space-y-6">
       {/* Top Action Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 print:hidden">
         <div className="flex items-center gap-3">
@@ -159,7 +163,8 @@ export const StudentProfilePage: React.FC = () => {
               </span>
             </div>
             <p className="text-xs text-slate-500 font-mono">
-              Student ID: {student.student_id} • Roll: {student.roll_number}
+              Student ID: {student.student_id} • Roll: {student.roll_number} • Class:{' '}
+              {student.class_level?.name || 'Class'} (Section {student.section?.name || 'A'})
             </p>
           </div>
         </div>
@@ -210,7 +215,12 @@ export const StudentProfilePage: React.FC = () => {
                 <img
                   src={student.student_image_url}
                   alt={fullName}
-                  onClick={() => setSelectedImage({ url: student.student_image_url!, title: `${fullName} - Student Photo` })}
+                  onClick={() =>
+                    setSelectedImage({
+                      url: student.student_image_url!,
+                      title: `${fullName} - Student Photo`,
+                    })
+                  }
                   className="h-28 w-28 rounded-2xl object-cover border-4 border-white shadow-lg bg-white cursor-pointer hover:opacity-95 transition-opacity"
                 />
               ) : (
@@ -263,7 +273,9 @@ export const StudentProfilePage: React.FC = () => {
                 <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0" />
                 <div>
                   <span className="font-bold block">Portal Account Active</span>
-                  <span className="text-[11px] text-emerald-700 font-mono block">{student.user.email}</span>
+                  <span className="text-[11px] text-emerald-700 font-mono block">
+                    {student.user.email}
+                  </span>
                 </div>
               </div>
             )}
@@ -271,369 +283,284 @@ export const StudentProfilePage: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Left Column: Academic & Personal Info */}
-        <div className="md:col-span-2 space-y-6">
-          {/* Card 1: Academic Enrollment Information */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-            <div className="px-6 py-4 bg-slate-50/70 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                <GraduationCap className="h-4 w-4 text-indigo-600" />
-                Academic SIS Details
-              </h3>
-              <span className="text-xs font-semibold text-slate-500">
-                {student.school?.name || 'Govt School'}
-              </span>
+      {/* Primary Section Switcher */}
+      <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
+        <button
+          type="button"
+          onClick={() => setActiveView('records')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+            activeView === 'records'
+              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+          }`}
+        >
+          <TableProperties className="w-4 h-4" />
+          <span>Student Records & Tables (7)</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveView('bio')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+            activeView === 'bio'
+              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+          }`}
+        >
+          <Users className="w-4 h-4" />
+          <span>Bio & Guardian Details</span>
+        </button>
+      </div>
+
+      {/* ================= VIEW 1: SEVEN STUDENT RECORD TABLES ================= */}
+      {activeView === 'records' ? (
+        <StudentDetailTables
+          summary={summary}
+          studentId={student.id}
+          studentName={fullName}
+          onRefresh={fetchStudentData}
+          onOpenUploadDoc={() => setIsUploadDocOpen(true)}
+          onPreviewDoc={(doc) => setPreviewDoc(doc)}
+          onAddTeacherNote={handleAddTeacherNote}
+          onDeleteTeacherNote={handleDeleteTeacherNote}
+        />
+      ) : (
+        /* ================= VIEW 2: BIO & GUARDIAN PROFILE ================= */
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Left Column: Academic & Personal Info */}
+          <div className="md:col-span-2 space-y-6">
+            {/* Academic SIS Details */}
+            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+              <div className="px-6 py-4 bg-slate-50/70 border-b border-slate-100 flex items-center justify-between">
+                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                  <GraduationCap className="h-4 w-4 text-indigo-600" />
+                  Academic SIS Details
+                </h3>
+                <span className="text-xs font-semibold text-slate-500">
+                  {student.school?.name || 'Govt School'}
+                </span>
+              </div>
+
+              <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                <div className="space-y-1">
+                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                    Class Level
+                  </span>
+                  <p className="font-bold text-slate-900">{student.class_level?.name || 'N/A'}</p>
+                </div>
+
+                <div className="space-y-1">
+                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                    Section
+                  </span>
+                  <p className="font-bold text-slate-900">
+                    {student.section?.name || 'A'}
+                    {student.section?.capacity ? ` (Capacity: ${student.section.capacity})` : ''}
+                  </p>
+                </div>
+
+                <div className="space-y-1">
+                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                    Class Roll
+                  </span>
+                  <p className="font-bold font-mono text-indigo-700">{student.roll_number}</p>
+                </div>
+
+                <div className="space-y-1">
+                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                    Academic Shift
+                  </span>
+                  <p className="font-medium text-slate-800">{student.shift?.name || 'Day'} Shift</p>
+                </div>
+
+                <div className="space-y-1">
+                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                    Academic Year
+                  </span>
+                  <p className="font-medium text-slate-800">
+                    {student.academic_year?.title || 'Current Academic Session'}
+                  </p>
+                </div>
+
+                <div className="space-y-1">
+                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                    Enrollment Date
+                  </span>
+                  <p className="font-medium text-slate-800">
+                    {student.enrollment_date || 'Standard Academic Term'}
+                  </p>
+                </div>
+              </div>
             </div>
 
-            <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-              <div className="space-y-1">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Class Level</span>
-                <p className="font-bold text-slate-900">{student.class_level?.name || 'N/A'}</p>
-              </div>
-
-              <div className="space-y-1">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Section</span>
-                <p className="font-bold text-slate-900">
-                  {student.section?.name || 'A'}
-                  {student.section?.capacity ? ` (Capacity: ${student.section.capacity})` : ''}
-                </p>
-              </div>
-
-              <div className="space-y-1">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Class Roll</span>
-                <p className="font-bold font-mono text-indigo-700">{student.roll_number}</p>
-              </div>
-
-              <div className="space-y-1">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Academic Shift</span>
-                <p className="font-medium text-slate-800">{student.shift?.name || 'Day'} Shift</p>
-              </div>
-
-              <div className="space-y-1">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Academic Year</span>
-                <p className="font-medium text-slate-800">{student.academic_year?.title || 'Current Academic Session'}</p>
-              </div>
-
-              <div className="space-y-1">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Enrollment Date</span>
-                <p className="font-medium text-slate-800">{student.enrollment_date || 'Standard Academic Term'}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Card 2: Personal Information */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-            <div className="px-6 py-4 bg-slate-50/70 border-b border-slate-100">
-              <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                <Users className="h-4 w-4 text-indigo-600" />
-                Personal & Demographic Information
-              </h3>
-            </div>
-
-            <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-              <div className="space-y-1">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Full Name</span>
-                <p className="font-bold text-slate-900">{fullName}</p>
-              </div>
-
-              <div className="space-y-1">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Gender</span>
-                <p className="font-medium text-slate-800">{student.gender}</p>
-              </div>
-
-              <div className="space-y-1">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Date of Birth</span>
-                <p className="font-medium text-slate-800">{student.date_of_birth || 'Not Specified'}</p>
-              </div>
-
-              <div className="space-y-1">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Registered Email</span>
-                <p className="font-mono text-slate-800">{student.email || 'None'}</p>
-              </div>
-
-              <div className="sm:col-span-2 space-y-1">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Residential Address</span>
-                <p className="font-medium text-slate-800 flex items-start gap-1.5">
-                  <MapPin className="h-4 w-4 text-slate-400 shrink-0 mt-0.5" />
-                  <span>{student.address || 'Address record not provided'}</span>
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Card 3: Quick Module Shortcuts */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 print:hidden">
-            <Link
-              to="/attendance"
-              className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-indigo-300 hover:shadow-md transition-all flex items-center gap-3 group"
-            >
-              <div className="p-2.5 rounded-xl bg-indigo-50 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
-                <Calendar className="h-5 w-5" />
-              </div>
-              <div>
-                <span className="text-xs font-bold text-slate-900 block">Attendance</span>
-                <span className="text-[11px] text-slate-500">Daily SIS logs</span>
-              </div>
-            </Link>
-
-            <Link
-              to="/finance/invoices"
-              className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-indigo-300 hover:shadow-md transition-all flex items-center gap-3 group"
-            >
-              <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
-                <Clock className="h-5 w-5" />
-              </div>
-              <div>
-                <span className="text-xs font-bold text-slate-900 block">Finance Fees</span>
-                <span className="text-[11px] text-slate-500">Invoices & dues</span>
-              </div>
-            </Link>
-
-            <Link
-              to="/exams/results"
-              className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-indigo-300 hover:shadow-md transition-all flex items-center gap-3 group"
-            >
-              <div className="p-2.5 rounded-xl bg-amber-50 text-amber-600 group-hover:bg-amber-600 group-hover:text-white transition-colors">
-                <Sparkles className="h-5 w-5" />
-              </div>
-              <div>
-                <span className="text-xs font-bold text-slate-900 block">Exams & Marks</span>
-                <span className="text-[11px] text-slate-500">Results & GPA</span>
-              </div>
-            </Link>
-          </div>
-
-          {/* Student Documents Card (Media Module Backed) */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-            <div className="px-6 py-4 bg-slate-50/70 border-b border-slate-100 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <FolderArchive className="h-4 w-4 text-indigo-600" />
-                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
-                  Student Documents ({documents.length})
+            {/* Personal Information */}
+            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+              <div className="px-6 py-4 bg-slate-50/70 border-b border-slate-100">
+                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                  <Users className="h-4 w-4 text-indigo-600" />
+                  Personal & Demographic Information
                 </h3>
               </div>
-              <button
-                type="button"
-                onClick={() => setIsUploadDocOpen(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-all shadow-xs"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                Upload Document
-              </button>
-            </div>
 
-            <div className="p-6">
-              {documentsLoading ? (
-                <div className="py-8 flex justify-center text-slate-400">
-                  <Loader2 className="h-6 w-6 animate-spin text-indigo-500" />
+              <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                <div className="space-y-1">
+                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                    Full Name
+                  </span>
+                  <p className="font-bold text-slate-900">{fullName}</p>
                 </div>
-              ) : documents.length === 0 ? (
-                <div className="text-center py-8">
-                  <div className="h-12 w-12 rounded-xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-2">
-                    <FileText className="h-6 w-6" />
-                  </div>
-                  <p className="text-xs font-semibold text-slate-700">No documents uploaded for this student</p>
-                  <p className="text-[11px] text-slate-400 mt-0.5">
-                    Upload birth certificates, NID copies, previous transcripts, or medical records via Media module.
+
+                <div className="space-y-1">
+                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                    Gender
+                  </span>
+                  <p className="font-medium text-slate-800">{student.gender}</p>
+                </div>
+
+                <div className="space-y-1">
+                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                    Date of Birth
+                  </span>
+                  <p className="font-medium text-slate-800">
+                    {student.date_of_birth || 'Not Specified'}
                   </p>
-                  <button
-                    type="button"
-                    onClick={() => setIsUploadDocOpen(true)}
-                    className="mt-3 inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors"
+                </div>
+
+                <div className="space-y-1">
+                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                    Registered Email
+                  </span>
+                  <p className="font-mono text-slate-800">{student.email || 'None'}</p>
+                </div>
+
+                <div className="sm:col-span-2 space-y-1">
+                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                    Residential Address
+                  </span>
+                  <p className="font-medium text-slate-800 flex items-start gap-1.5">
+                    <MapPin className="h-4 w-4 text-slate-400 shrink-0 mt-0.5" />
+                    <span>{student.address || 'Address record not provided'}</span>
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column: Parents & Photos */}
+          <div className="space-y-6">
+            {/* Guardian Contact */}
+            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+              <div className="px-6 py-4 bg-slate-50/70 border-b border-slate-100">
+                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                  <Phone className="h-4 w-4 text-indigo-600" />
+                  Parents & Guardian Contact
+                </h3>
+              </div>
+
+              <div className="p-6 space-y-4">
+                <div className="space-y-1">
+                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                    Father's Name
+                  </span>
+                  <p className="font-bold text-slate-900">{student.father_name}</p>
+                </div>
+
+                <div className="space-y-1">
+                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                    Mother's Name
+                  </span>
+                  <p className="font-bold text-slate-900">{student.mother_name}</p>
+                </div>
+
+                <div className="space-y-1">
+                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                    Emergency Contact (BD)
+                  </span>
+                  <a
+                    href={`tel:${student.phone_number}`}
+                    className="font-mono font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-2 text-base"
                   >
-                    <Upload className="h-3.5 w-3.5" />
-                    Upload First Document
-                  </button>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {documents.map((doc) => (
-                    <div
-                      key={doc.id}
-                      className="border border-slate-200/80 rounded-xl p-3.5 hover:border-indigo-200 hover:bg-indigo-50/20 transition-all flex items-start justify-between gap-3 group"
-                    >
-                      <div className="flex items-start gap-2.5 min-w-0">
-                        <div className="h-9 w-9 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center shrink-0 mt-0.5">
-                          <FileText className="h-4 w-4" />
-                        </div>
-                        <div className="truncate">
-                          <p className="text-xs font-bold text-slate-900 truncate group-hover:text-indigo-600 transition-colors">
-                            {doc.title}
-                          </p>
-                          <span className="text-[10px] font-semibold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded-md capitalize inline-block my-0.5">
-                            {doc.document_type}
-                          </span>
-                          <p className="text-[11px] text-slate-400 font-mono">
-                            {doc.formatted_file_size} • {new Date(doc.created_at).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-1 shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => setPreviewDoc(doc)}
-                          className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-slate-100 rounded-md transition-colors"
-                          title="Preview document"
-                        >
-                          <ExternalLink className="h-3.5 w-3.5" />
-                        </button>
-                        <a
-                          href={documentsApi.getDownloadUrl(doc.id)}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="p-1 text-slate-400 hover:text-emerald-600 hover:bg-slate-100 rounded-md transition-colors"
-                          title="Download via Media module"
-                        >
-                          <Download className="h-3.5 w-3.5" />
-                        </a>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Right Column: Parents & Attached Photos (Media Module) */}
-        <div className="space-y-6">
-          {/* Guardian / Parents Information */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-            <div className="px-6 py-4 bg-slate-50/70 border-b border-slate-100">
-              <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                <Phone className="h-4 w-4 text-indigo-600" />
-                Parents & Guardian Contact
-              </h3>
-            </div>
-
-            <div className="p-6 space-y-4">
-              <div className="space-y-1">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Father's Name</span>
-                <p className="font-bold text-slate-900">{student.father_name}</p>
-              </div>
-
-              <div className="space-y-1">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Mother's Name</span>
-                <p className="font-bold text-slate-900">{student.mother_name}</p>
-              </div>
-
-              <div className="space-y-1">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Emergency Contact (BD)</span>
-                <a
-                  href={`tel:${student.phone_number}`}
-                  className="font-mono font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-2 text-base"
-                >
-                  <Phone className="h-4 w-4" />
-                  <span>{student.phone_number}</span>
-                </a>
-              </div>
-            </div>
-          </div>
-
-          {/* Attached Media & Photos Gallery (Cloudflare R2 / Media Module) */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-            <div className="px-6 py-4 bg-slate-50/70 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                <Camera className="h-4 w-4 text-indigo-600" />
-                Stored Photos (Media)
-              </h3>
-              <span className="text-[11px] font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
-                Tenant Scoped
-              </span>
-            </div>
-
-            <div className="p-6 space-y-4">
-              {/* Student Photo */}
-              <div className="p-3 rounded-xl border border-slate-200 bg-slate-50/50 flex items-center gap-3">
-                {student.student_image_url ? (
-                  <img
-                    src={student.student_image_url}
-                    alt="Student Photo"
-                    onClick={() => setSelectedImage({ url: student.student_image_url!, title: `${fullName} - Student Photo` })}
-                    className="h-16 w-16 rounded-xl object-cover border border-slate-200 bg-white cursor-pointer hover:opacity-90"
-                  />
-                ) : (
-                  <div className="h-16 w-16 rounded-xl border border-slate-200 bg-white flex items-center justify-center text-slate-400">
-                    <Camera className="h-6 w-6" />
-                  </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <span className="text-xs font-bold text-slate-800 block truncate">Student ID Photo</span>
-                  <span className="text-[11px] text-slate-500 block truncate">
-                    {student.student_image ? 'Saved in backend media' : 'No photo uploaded'}
-                  </span>
-                  {student.student_image_url && (
-                    <button
-                      type="button"
-                      onClick={() => setSelectedImage({ url: student.student_image_url!, title: `${fullName} - Student Photo` })}
-                      className="text-[11px] font-semibold text-indigo-600 hover:underline mt-0.5 inline-block cursor-pointer"
-                    >
-                      View full size
-                    </button>
-                  )}
+                    <Phone className="h-4 w-4" />
+                    <span>{student.phone_number}</span>
+                  </a>
                 </div>
               </div>
+            </div>
 
-              {/* Father / Parent Photo */}
-              <div className="p-3 rounded-xl border border-slate-200 bg-slate-50/50 flex items-center gap-3">
-                {student.parent_image_url ? (
-                  <img
-                    src={student.parent_image_url}
-                    alt="Parent Photo"
-                    onClick={() => setSelectedImage({ url: student.parent_image_url!, title: `${student.father_name} - Father Photo` })}
-                    className="h-16 w-16 rounded-xl object-cover border border-slate-200 bg-white cursor-pointer hover:opacity-90"
-                  />
-                ) : (
-                  <div className="h-16 w-16 rounded-xl border border-slate-200 bg-white flex items-center justify-center text-slate-400">
-                    <Users className="h-6 w-6" />
-                  </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <span className="text-xs font-bold text-slate-800 block truncate">Father / Guardian Photo</span>
-                  <span className="text-[11px] text-slate-500 block truncate">
-                    {student.parent_image || student.father_image ? 'Saved in backend media' : 'No photo uploaded'}
-                  </span>
-                  {student.parent_image_url && (
-                    <button
-                      type="button"
-                      onClick={() => setSelectedImage({ url: student.parent_image_url!, title: `${student.father_name} - Father Photo` })}
-                      className="text-[11px] font-semibold text-indigo-600 hover:underline mt-0.5 inline-block cursor-pointer"
-                    >
-                      View full size
-                    </button>
-                  )}
-                </div>
+            {/* Attached Photos */}
+            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+              <div className="px-6 py-4 bg-slate-50/70 border-b border-slate-100 flex items-center justify-between">
+                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                  <Camera className="h-4 w-4 text-indigo-600" />
+                  Stored Photos (Media)
+                </h3>
               </div>
 
-              {/* Mother Photo */}
-              {student.mother_image_url && (
+              <div className="p-6 space-y-4">
+                {/* Student Photo */}
                 <div className="p-3 rounded-xl border border-slate-200 bg-slate-50/50 flex items-center gap-3">
-                  <img
-                    src={student.mother_image_url}
-                    alt="Mother Photo"
-                    onClick={() => setSelectedImage({ url: student.mother_image_url!, title: `${student.mother_name} - Mother Photo` })}
-                    className="h-16 w-16 rounded-xl object-cover border border-slate-200 bg-white cursor-pointer hover:opacity-90"
-                  />
+                  {student.student_image_url ? (
+                    <img
+                      src={student.student_image_url}
+                      alt="Student Photo"
+                      onClick={() =>
+                        setSelectedImage({
+                          url: student.student_image_url!,
+                          title: `${fullName} - Student Photo`,
+                        })
+                      }
+                      className="h-16 w-16 rounded-xl object-cover border border-slate-200 bg-white cursor-pointer hover:opacity-90"
+                    />
+                  ) : (
+                    <div className="h-16 w-16 rounded-xl border border-slate-200 bg-white flex items-center justify-center text-slate-400">
+                      <Camera className="h-6 w-6" />
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0">
-                    <span className="text-xs font-bold text-slate-800 block truncate">Mother Photo</span>
-                    <span className="text-[11px] text-slate-500 block truncate">Saved in backend media</span>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedImage({ url: student.mother_image_url!, title: `${student.mother_name} - Mother Photo` })}
-                      className="text-[11px] font-semibold text-indigo-600 hover:underline mt-0.5 inline-block cursor-pointer"
-                    >
-                      View full size
-                    </button>
+                    <span className="text-xs font-bold text-slate-800 block truncate">
+                      Student ID Photo
+                    </span>
+                    <span className="text-[11px] text-slate-500 block truncate">
+                      {student.student_image ? 'Saved in media' : 'No photo uploaded'}
+                    </span>
                   </div>
                 </div>
-              )}
+
+                {/* Father Photo */}
+                <div className="p-3 rounded-xl border border-slate-200 bg-slate-50/50 flex items-center gap-3">
+                  {student.parent_image_url ? (
+                    <img
+                      src={student.parent_image_url}
+                      alt="Parent Photo"
+                      onClick={() =>
+                        setSelectedImage({
+                          url: student.parent_image_url!,
+                          title: `${student.father_name} - Father Photo`,
+                        })
+                      }
+                      className="h-16 w-16 rounded-xl object-cover border border-slate-200 bg-white cursor-pointer hover:opacity-90"
+                    />
+                  ) : (
+                    <div className="h-16 w-16 rounded-xl border border-slate-200 bg-white flex items-center justify-center text-slate-400">
+                      <Users className="h-6 w-6" />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <span className="text-xs font-bold text-slate-800 block truncate">
+                      Father / Guardian Photo
+                    </span>
+                    <span className="text-[11px] text-slate-500 block truncate">
+                      {student.parent_image || student.father_image
+                        ? 'Saved in media'
+                        : 'No photo uploaded'}
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Lightbox / Image Modal */}
       {selectedImage && (
@@ -685,7 +612,7 @@ export const StudentProfilePage: React.FC = () => {
           initialStudentId={student.id}
           initialUserId={student.user_id || undefined}
           onSuccess={() => {
-            fetchStudentDocuments(student.id);
+            fetchStudentData();
           }}
         />
       )}
@@ -695,8 +622,8 @@ export const StudentProfilePage: React.FC = () => {
         document={previewDoc}
         isOpen={!!previewDoc}
         onClose={() => setPreviewDoc(null)}
-        onDeleted={(deletedId) => {
-          setDocuments((prev) => prev.filter((d) => d.id !== deletedId));
+        onDeleted={() => {
+          fetchStudentData();
         }}
       />
     </div>

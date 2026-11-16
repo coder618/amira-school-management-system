@@ -19,6 +19,25 @@ export const useAttendance = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [saving, setSaving] = useState<boolean>(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [holidayInfo, setHolidayInfo] = useState<{ isHoliday: boolean; title?: string; type?: string } | null>(null);
+
+  // Check if selected date is a holiday
+  useEffect(() => {
+    if (!selectedDate) {
+      setHolidayInfo(null);
+      return;
+    }
+    attendanceApi
+      .checkDateHoliday(selectedDate)
+      .then((res) => {
+        if (res.is_holiday && res.holiday) {
+          setHolidayInfo({ isHoliday: true, title: res.holiday.title, type: res.holiday.type });
+        } else {
+          setHolidayInfo(null);
+        }
+      })
+      .catch(() => setHolidayInfo(null));
+  }, [selectedDate]);
 
   // Load sections initially
   useEffect(() => {
@@ -135,6 +154,7 @@ export const useAttendance = () => {
     loading,
     saving,
     feedback,
+    holidayInfo,
     setStudentStatus,
     setStudentRemarks,
     markAll,

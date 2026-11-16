@@ -10,6 +10,9 @@ import {
   MultiTenantDeviceStats,
   DevicePunchSimulationResult,
   AssignCardPayload,
+  Holiday,
+  HolidayPayload,
+  HolidayListResponse,
 } from '../types';
 
 export interface PaginatedResponse<T> {
@@ -139,6 +142,45 @@ export const attendanceApi = {
     const res = await apiClient.get<PaginatedResponse<AttendanceDeviceLog>>(
       '/super-admin/attendance/devices/logs',
       { params }
+    );
+    return res.data;
+  },
+
+  // Holiday Calendar APIs
+  getHolidays: async (params?: {
+    year?: number;
+    month?: number;
+    from?: string;
+    to?: string;
+    type?: string;
+    search?: string;
+  }): Promise<HolidayListResponse> => {
+    const res = await apiClient.get<HolidayListResponse>('/attendance/holidays', { params });
+    return res.data;
+  },
+
+  createHoliday: async (payload: HolidayPayload): Promise<{ message: string; data: Holiday }> => {
+    const res = await apiClient.post<{ message: string; data: Holiday }>('/attendance/holidays', payload);
+    return res.data;
+  },
+
+  updateHoliday: async (
+    id: number,
+    payload: Partial<HolidayPayload>
+  ): Promise<{ message: string; data: Holiday }> => {
+    const res = await apiClient.put<{ message: string; data: Holiday }>(`/attendance/holidays/${id}`, payload);
+    return res.data;
+  },
+
+  deleteHoliday: async (id: number): Promise<{ message: string }> => {
+    const res = await apiClient.delete<{ message: string }>(`/attendance/holidays/${id}`);
+    return res.data;
+  },
+
+  checkDateHoliday: async (date: string): Promise<{ date: string; is_holiday: boolean; holiday: Holiday | null }> => {
+    const res = await apiClient.get<{ date: string; is_holiday: boolean; holiday: Holiday | null }>(
+      '/attendance/holidays/check',
+      { params: { date } }
     );
     return res.data;
   },

@@ -33,6 +33,10 @@ class InvoiceController extends Controller
             $query->where('user_id', $request->query('user_id'));
         }
 
+        if ($request->filled('student_id')) {
+            $query->where('student_id', $request->query('student_id'));
+        }
+
         if ($request->filled('status')) {
             $query->where('status', $request->query('status'));
         }

@@ -12,6 +12,7 @@ import {
   CheckCircle,
   Users,
   Cpu,
+  Sparkles,
 } from 'lucide-react';
 
 export const AttendanceSheet: React.FC = () => {
@@ -28,6 +29,7 @@ export const AttendanceSheet: React.FC = () => {
     loading,
     saving,
     feedback,
+    holidayInfo,
     setStudentStatus,
     setStudentRemarks,
     markAll,
@@ -73,6 +75,21 @@ export const AttendanceSheet: React.FC = () => {
             <AlertCircle className="h-5 w-5 text-rose-600 shrink-0" />
           )}
           <span>{feedback.message}</span>
+        </div>
+      )}
+
+      {holidayInfo?.isHoliday && (
+        <div className="flex items-center gap-3 rounded-xl p-4 text-sm bg-amber-50 text-amber-900 border border-amber-200/90 shadow-2xs">
+          <div className="p-1.5 rounded-lg bg-amber-100 text-amber-700 shrink-0">
+            <Sparkles className="w-5 h-5" />
+          </div>
+          <div className="flex-1">
+            <span className="font-bold">Holiday Alert: </span>
+            <span>
+              {selectedDate} is marked as an institutional holiday ({holidayInfo.title}
+              {holidayInfo.type ? ` - ${holidayInfo.type}` : ''}). Daily attendance marking is optional.
+            </span>
+          </div>
         </div>
       )}
 

@@ -6,8 +6,10 @@ use App\Modules\Academic\Controllers\SectionController;
 use App\Modules\Academic\Controllers\ShiftController;
 use App\Modules\Academic\Controllers\StudentController;
 use App\Modules\Academic\Controllers\SubjectController;
+use App\Modules\Academic\Controllers\TeacherNoteController;
 use App\Modules\Attendance\Controllers\AttendanceController;
 use App\Modules\Attendance\Controllers\AttendanceDeviceController;
+use App\Modules\Attendance\Controllers\HolidayController;
 use App\Modules\Attendance\Controllers\MultiTenantAttendanceDeviceController;
 use App\Modules\Core\Controllers\SchoolController;
 use App\Modules\Documents\Controllers\DocumentController;
@@ -79,6 +81,11 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // 1. Academic Module (SIS) APIs
+    Route::get('/students/{student}/full-summary', [StudentController::class, 'fullSummary']);
+    Route::get('/students/{student}/attendance-history', [AttendanceController::class, 'studentHistory']);
+    Route::get('/students/{student}/teacher-notes', [TeacherNoteController::class, 'index']);
+    Route::post('/students/{student}/teacher-notes', [TeacherNoteController::class, 'store']);
+    Route::delete('/students/{student}/teacher-notes/{note}', [TeacherNoteController::class, 'destroy']);
     Route::apiResource('students', StudentController::class);
     Route::apiResource('class-levels', ClassLevelController::class);
     Route::apiResource('sections', SectionController::class)->only(['index', 'store', 'destroy']);
@@ -109,6 +116,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/attendance/device-stats', [AttendanceDeviceController::class, 'stats']);
     Route::post('/attendance/device/simulate', [AttendanceDeviceController::class, 'simulatePunch']);
     Route::post('/attendance/device/assign-card', [AttendanceDeviceController::class, 'assignCard']);
+
+    // 3.2 Holiday Calendar Module APIs
+    Route::get('/attendance/holidays/check', [HolidayController::class, 'checkDate']);
+    Route::apiResource('attendance/holidays', HolidayController::class)->parameters(['holidays' => 'holiday'])->whereNumber('holiday');
 
     // 4. FundCollectionName & Payments Modules (Tenant Fees & Collections)
     Route::apiResource('fund-collection-names', FundCollectionNameController::class)->parameters(['fund-collection-names' => 'fundCollectionName']);

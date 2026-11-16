@@ -9,3 +9,5 @@ export * from './components/DeviceManagementModal';
 export * from './components/DeviceIntegrationModal';
 export * from './components/DeviceSimulatorModal';
 export * from './components/DeviceAssignCardModal';
+export * from './components/HolidayCalendar';
+export * from './components/HolidayModal';
