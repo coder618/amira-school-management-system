@@ -1,5 +1,5 @@
 import { apiClient } from '../../../shared/services/apiClient';
-import { Teacher, TeacherPayload } from '../types';
+import { Teacher, TeacherPayload, TeacherFullSummaryResponse } from '../types';
 
 export const hrApi = {
   getTeachers: async (): Promise<Teacher[]> => {
@@ -9,6 +9,11 @@ export const hrApi = {
 
   getTeacherById: async (id: number): Promise<Teacher> => {
     const res = await apiClient.get<Teacher>(`/teachers/${id}`);
+    return res.data;
+  },
+
+  getTeacherFullSummary: async (id: number): Promise<TeacherFullSummaryResponse> => {
+    const res = await apiClient.get<TeacherFullSummaryResponse>(`/teachers/${id}/full-summary`);
     return res.data;
   },
 

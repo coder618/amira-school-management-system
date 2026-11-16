@@ -102,6 +102,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('documents', DocumentController::class)->parameters(['documents' => 'document']);
 
     // 2. HR Module (Teachers) APIs
+    Route::get('/teachers/{teacher}/full-summary', [TeacherController::class, 'fullSummary']);
     Route::apiResource('teachers', TeacherController::class);
 
     // 3. Attendance Module APIs

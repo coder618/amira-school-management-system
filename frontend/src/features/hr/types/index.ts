@@ -43,3 +43,63 @@ export interface TeacherPayload {
   image?: File | string | null;
 }
 
+export interface TeacherAttendanceHistoryItem {
+  id: number;
+  date: string;
+  day: string;
+  status: 'Present' | 'Absent' | 'Late' | 'Holiday';
+  in_time?: string | null;
+  out_time?: string | null;
+  punch_count?: number;
+  remarks?: string | null;
+  is_holiday?: boolean;
+  holiday?: {
+    title: string;
+    type?: string | null;
+  } | null;
+}
+
+export interface TeacherGivenNoteStudent {
+  id: number;
+  student_id: string;
+  first_name: string;
+  last_name: string;
+  roll_number?: number | string | null;
+  phone_number?: string | null;
+  class_level?: { id: number; name: string } | null;
+  section?: { id: number; name: string } | null;
+}
+
+export interface TeacherGivenNoteItem {
+  id: number;
+  school_id: number;
+  student_id: number;
+  teacher_id?: number | null;
+  author_id?: number | null;
+  author_name?: string | null;
+  title: string;
+  category: string;
+  note: string;
+  date: string;
+  created_at?: string;
+  student?: TeacherGivenNoteStudent | null;
+  author?: {
+    id: number;
+    name: string;
+    email: string;
+  } | null;
+}
+
+export interface TeacherFullSummaryResponse {
+  teacher: Teacher;
+  attendance: {
+    total: number;
+    data: TeacherAttendanceHistoryItem[];
+  };
+  teacher_notes: {
+    total: number;
+    data: TeacherGivenNoteItem[];
+  };
+}
+
+

@@ -3,6 +3,9 @@
 namespace App\Modules\HR\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Academic\Models\TeacherNote;
+use App\Modules\Attendance\Models\AttendanceDeviceLog;
+use App\Modules\Attendance\Models\Holiday;
 use App\Modules\Core\Enums\Role;
 use App\Modules\Core\Models\School;
 use App\Modules\Core\Models\User;
@@ -10,6 +13,7 @@ use App\Modules\HR\Models\Teacher;
 use App\Modules\HR\Requests\StoreTeacherRequest;
 use App\Modules\HR\Requests\UpdateTeacherRequest;
 use App\Modules\Media\Services\MediaService;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -131,7 +135,138 @@ class TeacherController extends Controller
     {
         $teacher->load(['user', 'assignedSections.classLevel']);
 
+        if (request()->boolean('full_summary')) {
+            return $this->fullSummary($teacher);
+        }
+
         return response()->json($teacher);
+    }
+
+    /**
+     * Get a comprehensive summary for a teacher including:
+     * - Last 10 days attendance (with device punches In/Out, absence, and holiday calendar consideration)
+     * - Given teacher notes list with linked student details
+     */
+    public function fullSummary(Teacher $teacher): JsonResponse
+    {
+        $user = auth()->user();
+        if ($user && $user->school_id && $teacher->school_id !== $user->school_id && ! $this->isAdminUser($user)) {
+            return response()->json(['message' => 'Unauthorized access to faculty record.'], 403);
+        }
+
+        $teacher->load(['user', 'assignedSections.classLevel']);
+
+        // 1. Last 10 days attendance
+        $today = Carbon::today();
+        $startDate = $today->copy()->subDays(9)->toDateString();
+        $endDate = $today->toDateString();
+
+        // Query holidays in this school
+        $holidays = Holiday::where('school_id', $teacher->school_id)
+            ->where(function ($query) use ($startDate, $endDate) {
+                $query->whereBetween('date', [$startDate, $endDate])
+                    ->orWhereBetween('end_date', [$startDate, $endDate])
+                    ->orWhere(function ($q) use ($startDate, $endDate) {
+                        $q->where('date', '<=', $endDate)
+                            ->where('end_date', '>=', $startDate);
+                    });
+            })
+            ->get();
+
+        // Device punch logs for this teacher
+        $deviceLogs = AttendanceDeviceLog::where('school_id', $teacher->school_id)
+            ->where(function ($q) use ($teacher) {
+                $q->where('teacher_id', $teacher->id);
+                if ($teacher->user_id) {
+                    $q->orWhere('user_id', $teacher->user_id);
+                }
+            })
+            ->whereDate('punched_at', '>=', $startDate)
+            ->whereDate('punched_at', '<=', $endDate)
+            ->where('status', 'success')
+            ->orderBy('punched_at', 'asc')
+            ->get()
+            ->groupBy(fn ($log) => Carbon::parse($log->punched_at)->toDateString());
+
+        $attendanceHistory = [];
+        for ($i = 0; $i < 10; $i++) {
+            $curDate = $today->copy()->subDays($i);
+            $dateStr = $curDate->toDateString();
+            $dayOfWeek = $curDate->format('l');
+
+            $holiday = $holidays->first(function ($h) use ($dateStr) {
+                $hStart = Carbon::parse($h->date)->toDateString();
+                $hEnd = $h->end_date ? Carbon::parse($h->end_date)->toDateString() : $hStart;
+                return $dateStr >= $hStart && $dateStr <= $hEnd;
+            });
+
+            $dayLogs = $deviceLogs->get($dateStr);
+            $inTime = null;
+            $outTime = null;
+            $punchCount = 0;
+
+            if ($dayLogs && $dayLogs->count() > 0) {
+                $punchCount = $dayLogs->count();
+                $firstPunch = $dayLogs->first();
+                $inTime = Carbon::parse($firstPunch->punched_at)->format('h:i A');
+
+                if ($dayLogs->count() > 1) {
+                    $lastPunch = $dayLogs->last();
+                    $outTime = Carbon::parse($lastPunch->punched_at)->format('h:i A');
+                }
+            }
+
+            if ($dayLogs && $dayLogs->count() > 0) {
+                $status = 'Present';
+                $remarks = $holiday
+                    ? "Present on Holiday ({$holiday->title})"
+                    : ($punchCount > 1 ? "Recorded {$punchCount} device punches" : "Punched In at {$inTime}");
+            } elseif ($holiday) {
+                $status = 'Holiday';
+                $remarks = $holiday->title . ($holiday->type ? " ({$holiday->type})" : '');
+            } else {
+                $status = 'Absent';
+                $remarks = 'No attendance recorded (Absent)';
+            }
+
+            $attendanceHistory[] = [
+                'id' => $i + 1,
+                'date' => $dateStr,
+                'day' => $dayOfWeek,
+                'status' => $status,
+                'in_time' => $inTime,
+                'out_time' => $outTime,
+                'punch_count' => $punchCount,
+                'remarks' => $remarks,
+                'is_holiday' => $holiday !== null,
+                'holiday' => $holiday ? ['title' => $holiday->title, 'type' => $holiday->type] : null,
+            ];
+        }
+
+        // 2. Given teacher notes list with student name with link
+        $teacherNotes = TeacherNote::with(['student.classLevel', 'student.section', 'author:id,name'])
+            ->where(function ($q) use ($teacher) {
+                $q->where('teacher_id', $teacher->id);
+                if ($teacher->user_id) {
+                    $q->orWhere('author_id', $teacher->user_id);
+                }
+            })
+            ->orderBy('date', 'desc')
+            ->orderBy('id', 'desc')
+            ->take(10)
+            ->get();
+
+        return response()->json([
+            'teacher' => $teacher,
+            'attendance' => [
+                'total' => count($attendanceHistory),
+                'data' => $attendanceHistory,
+            ],
+            'teacher_notes' => [
+                'total' => $teacherNotes->count(),
+                'data' => $teacherNotes,
+            ],
+        ]);
     }
 
     public function update(UpdateTeacherRequest $request, Teacher $teacher): JsonResponse
